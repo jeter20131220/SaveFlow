@@ -38,10 +38,35 @@ const categories = [
   { id: 'all', label: '全部' },
   { id: 'paypay', label: 'PayPay' },
   { id: 'convenience', label: '便利商店' },
-  { id: 'shopping', label: '購物' },
+  { id: 'supermarket', label: '超市' },
+  { id: 'drugstore', label: '藥妝' },
   { id: 'food', label: '餐飲' },
-  { id: 'entertainment', label: '娛樂' },
+  { id: 'shopping', label: '購物' },
+  { id: 'travel', label: '旅遊' }
+  
 ]
+
+
+const categoryCovers = {
+  paypay: '/img/covers/paypay.webp',
+  convenience: '/img/covers/convenience.webp',
+  supermarket: '/img/covers/supermarket.webp',
+  drugstore: '/img/covers/drugstore.webp',
+  food: '/img/covers/food.webp',
+  shopping: '/img/covers/shopping.webp',
+  travel: '/img/covers/travel.webp',
+  fashion: '/img/covers/shopping.webp',
+  electronics: '/img/covers/shopping.webp',
+}
+
+
+
+const getCategoryLabel = (categoryId) => {
+  return (
+    categories.find((category) => category.id === categoryId)?.label ||
+    '其他'
+  )
+}
 
 /**
  * Demo JSON
@@ -241,7 +266,430 @@ const todayDeals = ref([
       "總回饋上限 100 點"
     ],
     "capturedAt": "2026-07-13T14:32:00+09:00"
+  },
+  {
+    "id": "paypay-welcia-20260713-001",
+    "merchant": "Welcia",
+    "category": "drugstore",
+
+    "title": "Welcia 最高 7% PayPay 點數回饋",
+
+    "summary": "透過 Welcia App 使用 PayPay 付款，可享最高 7% PayPay Point 回饋。",
+
+    "rewardType": "percent",
+    "rewardValue": 7,
+    "rewardText": "最高 7%",
+    "rewardLabel": "PayPay 點數回饋",
+
+    "minimumSpend": 2000,
+
+    "pointLimit": 300,
+
+    "usageLimit": 1,
+
+    "startDate": null,
+    "endDate": "2026-07-31",
+
+    "deadline": "2026-07-31 23:59",
+
+    "location": "日本 Welcia 門市",
+
+    "mustClaim": true,
+
+    "verified": true,
+
+    "featured": false,
+
+    "sourceType": "PayPay Coupon",
+
+    "image": "",
+
+    "tags": [
+      "PayPay",
+      "Welcia",
+      "藥妝"
+    ],
+
+    "notes": [
+      "僅限 Welcia Group App 使用 PayPay 付款",
+      "最低支付金額 2,000 日圓",
+      "單次最高回饋 300 點",
+      "活動期間限使用 1 次"
+    ],
+
+    "capturedAt": "2026-07-13T16:43:00+09:00"
+  },
+  {
+    "id": "paypay-yoshinoya-20260713-001",
+    "merchant": "吉野家",
+    "category": "food",
+
+    "title": "吉野家最高 5% PayPay 點數回饋",
+
+    "summary": "LYP Premium 會員限定，使用 PayPay 付款可享最高 5% PayPay Point 回饋。",
+
+    "rewardType": "percent",
+    "rewardValue": 5,
+    "rewardText": "最高 5%",
+    "rewardLabel": "PayPay 點數回饋",
+
+    "minimumSpend": 0,
+
+    "pointLimit": 100,
+
+    "usageLimit": 1,
+
+    "startDate": null,
+    "endDate": "2026-07-31",
+
+    "deadline": "2026-07-31 23:59",
+
+    "location": "日本指定吉野家門市",
+
+    "mustClaim": true,
+
+    "verified": true,
+
+    "featured": false,
+
+    "sourceType": "LYP Premium Coupon",
+
+    "image": "",
+
+    "tags": [
+      "PayPay",
+      "LYP Premium",
+      "吉野家"
+    ],
+
+    "notes": [
+      "限 LYP Premium 會員",
+      "需綁定 PayPay 與 LYP 帳號",
+      "單次最高回饋 100 點",
+      "活動期間限使用 1 次",
+      "優惠可能提前結束"
+    ],
+
+    "capturedAt": "2026-07-13T17:29:00+09:00"
+  },
+
+  {
+    "id": "paypay-meiji-savas-biopro-20260713-001",
+    "platform": "PayPay",
+    "category": "shopping",
+    "brand": "明治",
+    "merchant": "明治",
+    "title": "SAVAS BIOPRO 蛋白粉最高回饋 30%",
+    "summary": "購買指定 SAVAS BIOPRO Whey Protein 100 商品，可獲得最高 30% PayPay Point 回饋。",
+    "rewardType": "percentage",
+    "rewardValue": 30,
+    "rewardText": "最高 30%",
+    "rewardLabel": "PayPay 點數回饋",
+    "minimumSpend": 0,
+    "rewardLimit": 10000,
+    "usageLimit": 3,
+    "startDate": null,
+    "endDate": "2026-08-02",
+    "deadlineText": "2026-08-02 23:59",
+    "location": "日本指定販售通路",
+    "mustClaim": true,
+    "personalized": null,
+    "eligibleForAllUsers": null,
+    "sourceType": "PayPay Coupon",
+    "sourceUrl": null,
+    "verified": true,
+    "featured": true,
+    "notes": [
+      "僅限指定 SAVAS BIOPRO Whey Protein 100 商品",
+      "最低支付金額無限制，但僅計算活動指定商品的消費金額",
+      "單次最高回饋 10,000 點",
+      "活動期間最多使用 3 次",
+      "活動期間總回饋上限 10,000 點",
+      "適用商品與門市請以個人 PayPay App 顯示為準"
+    ],
+    "capturedAt": "2026-07-13T18:04:00+09:00"
+  },
+  {
+    "id": "paypay-ministop-20260713-001",
+    "platform": "PayPay",
+    "category": "convenience",
+    "brand": "ミニストップ",
+    "merchant": "ミニストップ",
+    "title": "MiniStop 使用 PayPay 付款最高回饋 3%",
+    "summary": "於活動指定 MiniStop 門市使用 PayPay 付款，可獲得最高 3% PayPay Point 回饋。",
+    "rewardType": "percentage",
+    "rewardValue": 3,
+    "rewardText": "最高 3%",
+    "rewardLabel": "PayPay 點數回饋",
+    "minimumSpend": 0,
+    "rewardLimit": 100,
+    "usageLimit": 1,
+    "startDate": null,
+    "endDate": "2026-07-19",
+    "deadlineText": "2026-07-19 23:59",
+    "location": "日本指定 MiniStop 門市",
+    "mustClaim": true,
+    "personalized": null,
+    "eligibleForAllUsers": null,
+    "sourceType": "PayPay Coupon",
+    "sourceUrl": null,
+    "verified": true,
+    "featured": false,
+    "notes": [
+      "單次最高回饋 100 點",
+      "活動期間限使用 1 次",
+      "總回饋上限 100 點",
+      "購買菸品的金額不適用優惠",
+      "適用門市請以 PayPay App 顯示為準"
+    ],
+    "capturedAt": "2026-07-13T17:58:00+09:00"
+  },
+  {
+    "id": "paypay-ministop-app-20260713-002",
+    "platform": "PayPay",
+    "category": "convenience",
+    "brand": "ミニストップ",
+    "merchant": "ミニストップ",
+    "title": "透過 MiniStop App 使用 PayPay 最高回饋 5%",
+    "summary": "透過 MiniStop App 使用 PayPay 付款，可獲得最高 5% PayPay Point 回饋。",
+    "rewardType": "percentage",
+    "rewardValue": 5,
+    "rewardText": "最高 5%",
+    "rewardLabel": "PayPay 點數回饋",
+    "minimumSpend": 0,
+    "rewardLimit": 100,
+    "usageLimit": 1,
+    "startDate": null,
+    "endDate": "2026-07-21",
+    "deadlineText": "2026-07-21 23:59",
+    "location": "日本指定 MiniStop 門市",
+    "mustClaim": true,
+    "personalized": null,
+    "eligibleForAllUsers": null,
+    "sourceType": "PayPay Coupon",
+    "sourceUrl": null,
+    "verified": true,
+    "featured": false,
+    "notes": [
+      "僅限透過 MiniStop App 使用 PayPay 付款",
+      "單次最高回饋 100 點",
+      "活動期間限使用 1 次",
+      "總回饋上限 100 點",
+      "購買菸品的金額不適用優惠"
+    ],
+    "capturedAt": "2026-07-13T17:58:00+09:00"
+  },
+  {
+    "id": "paypay-ueshima-coffee-20260713-001",
+    "platform": "PayPay",
+    "category": "food",
+    "brand": "上島珈琲店",
+    "merchant": "上島珈琲店",
+    "title": "上島珈琲店使用 PayPay 最高回饋 5%",
+    "summary": "於活動指定的上島珈琲店等門市使用 PayPay 付款，可獲得最高 5% PayPay Point 回饋。",
+    "rewardType": "percentage",
+    "rewardValue": 5,
+    "rewardText": "最高 5%",
+    "rewardLabel": "PayPay 點數回饋",
+    "minimumSpend": 0,
+    "rewardLimit": 500,
+    "usageLimit": null,
+    "startDate": null,
+    "endDate": "2026-07-31",
+    "deadlineText": "2026-07-31 23:59",
+    "location": "日本指定門市",
+    "mustClaim": true,
+    "personalized": null,
+    "eligibleForAllUsers": null,
+    "sourceType": "PayPay Coupon",
+    "sourceUrl": null,
+    "verified": true,
+    "featured": false,
+    "notes": [
+      "單次最高回饋 500 點",
+      "使用次數無限制",
+      "活動期間總回饋上限 500 點",
+      "圖片顯示的適用品牌可能包含上島珈琲店、UCC Café Plaza、Cafe Lounge Gate 53",
+      "實際適用門市請以 PayPay App 顯示為準"
+    ],
+    "capturedAt": "2026-07-13T18:01:00+09:00"
+  },
+  {
+    "id": "paypay-yahoo-shopping-softbank-20260713-001",
+    "platform": "PayPay",
+    "category": "shopping",
+    "brand": "Yahoo!ショッピング",
+    "merchant": "Yahoo!ショッピング",
+    "title": "Yahoo! Shopping 線上付款最高回饋 10%",
+    "summary": "SoftBank 用戶限定，於 Yahoo! Shopping 使用 PayPay 線上付款，可獲得最高 10% PayPay Point 回饋。",
+    "rewardType": "percentage",
+    "rewardValue": 10,
+    "rewardText": "最高 10%",
+    "rewardLabel": "PayPay 點數回饋",
+    "minimumSpend": 0,
+    "rewardLimit": 300,
+    "usageLimit": null,
+    "startDate": null,
+    "endDate": "2026-07-31",
+    "deadlineText": "2026-07-31 23:59",
+    "location": "Yahoo! Shopping 線上商城",
+    "mustClaim": true,
+    "personalized": false,
+    "eligibleForAllUsers": false,
+    "sourceType": "PayPay Super Coupon",
+    "sourceUrl": null,
+    "verified": true,
+    "featured": true,
+    "notes": [
+      "SoftBank 用戶限定",
+      "需將 PayPay 帳號與已完成 Smart Login 設定的 Yahoo! JAPAN ID 綁定",
+      "僅限線上付款",
+      "單次最高回饋 300 點",
+      "使用次數無限制",
+      "活動期間總回饋上限 300 點"
+    ],
+    "capturedAt": "2026-07-13T18:07:00+09:00"
+  },
+  {
+    "id": "paypay-zoff-store-20260713-001",
+    "platform": "PayPay",
+    "category": "fashion",
+    "brand": "Zoff",
+    "merchant": "Zoff",
+    "title": "Zoff 實體門市消費最高回饋 10%",
+    "summary": "於活動指定的 Zoff 實體門市消費滿 8,800 日圓，使用 PayPay 付款可獲得最高 10% 回饋。",
+    "rewardType": "percentage",
+    "rewardValue": 10,
+    "rewardText": "最高 10%",
+    "rewardLabel": "PayPay 點數回饋",
+    "minimumSpend": 8800,
+    "rewardLimit": 1000,
+    "usageLimit": 1,
+    "startDate": null,
+    "endDate": "2026-08-16",
+    "deadlineText": "2026-08-16 23:59",
+    "location": "日本指定 Zoff 實體門市",
+    "mustClaim": true,
+    "personalized": null,
+    "eligibleForAllUsers": null,
+    "sourceType": "PayPay Coupon",
+    "sourceUrl": null,
+    "verified": true,
+    "featured": true,
+    "notes": [
+      "僅限 Zoff 實體門市",
+      "最低支付金額 8,800 日圓",
+      "單次最高回饋 1,000 點",
+      "活動期間限使用 1 次",
+      "活動期間總回饋上限 1,000 點"
+    ],
+    "capturedAt": "2026-07-13T18:10:00+09:00"
+  },
+  {
+    "id": "paypay-yamada-webcom-20260713-001",
+    "platform": "PayPay",
+    "category": "electronics",
+    "brand": "ヤマダデンキ",
+    "merchant": "ヤマダウェブコム",
+    "title": "Yamada Web.com 消費滿 50,000 日圓贈送 2,000 點",
+    "summary": "於 Yamada Web.com 使用 PayPay Credit 支付滿 50,000 日圓，可獲得最高 2,000 點 PayPay Point。",
+    "rewardType": "points",
+    "rewardValue": 2000,
+    "rewardText": "最高 2,000 點",
+    "rewardLabel": "PayPay 點數回饋",
+    "minimumSpend": 50000,
+    "rewardLimit": 2000,
+    "usageLimit": 1,
+    "startDate": null,
+    "endDate": "2026-07-31",
+    "deadlineText": "2026-07-31 23:59",
+    "location": "ヤマダウェブコム線上商城",
+    "mustClaim": true,
+    "personalized": null,
+    "eligibleForAllUsers": null,
+    "sourceType": "PayPay Credit Coupon",
+    "sourceUrl": null,
+    "verified": true,
+    "featured": false,
+    "notes": [
+      "僅限使用 PayPay Credit 付款",
+      "最低支付金額 50,000 日圓",
+      "活動期間限使用 1 次",
+      "活動期間總回饋上限 2,000 點",
+      "僅使用 PayPay Point 或 PayPay 商品券付款時不適用"
+    ],
+    "capturedAt": "2026-07-13T18:14:00+09:00"
+  },
+  {
+    "id": "paypay-ecos-20260713-001",
+    "platform": "PayPay",
+    "category": "supermarket",
+    "brand": "エコスグループ",
+    "merchant": "エコスグループ",
+    "title": "Ecos Group 消費最高回饋 5%",
+    "summary": "於 Ecos Group 指定門市使用 PayPay 付款，最高可獲得 5% PayPay Point 回饋。",
+    "rewardType": "percentage",
+    "rewardValue": 5,
+    "rewardText": "最高 5%",
+    "rewardLabel": "PayPay 點數回饋",
+    "minimumSpend": 2000,
+    "rewardLimit": 1000,
+    "usageLimit": null,
+    "startDate": "2026-07-17",
+    "endDate": "2026-07-23",
+    "deadlineText": "2026-07-23 23:59",
+    "location": "日本指定 Ecos Group 門市",
+    "mustClaim": true,
+    "personalized": null,
+    "eligibleForAllUsers": null,
+    "sourceType": "PayPay Coupon",
+    "sourceUrl": null,
+    "verified": true,
+    "featured": true,
+    "notes": [
+      "最低消費 2,000 日圓",
+      "最高回饋 1,000 點",
+      "使用次數不限",
+      "活動期間總回饋上限 1,000 點",
+      "適用門市請以 PayPay App 顯示為準"
+    ],
+    "capturedAt": "2026-07-13T18:31:00+09:00"
+  }, {
+    "id": "paypay-ricos-20260713-001",
+    "platform": "PayPay",
+    "category": "supermarket",
+    "brand": "リコス",
+    "merchant": "リコス",
+    "title": "Rico's 消費最高回饋 5%",
+    "summary": "於 Rico's 指定門市使用 PayPay 付款，最高可獲得 5% PayPay Point 回饋。",
+    "rewardType": "percentage",
+    "rewardValue": 5,
+    "rewardText": "最高 5%",
+    "rewardLabel": "PayPay 點數回饋",
+    "minimumSpend": 2000,
+    "rewardLimit": 100,
+    "usageLimit": 1,
+    "startDate": null,
+    "endDate": "2027-02-28",
+    "deadlineText": "2027-02-28 23:59",
+    "location": "日本指定 Rico's 門市",
+    "mustClaim": true,
+    "personalized": null,
+    "eligibleForAllUsers": null,
+    "sourceType": "PayPay Coupon",
+    "sourceUrl": null,
+    "verified": true,
+    "featured": false,
+    "notes": [
+      "最低消費 2,000 日圓",
+      "單次最高回饋 100 點",
+      "活動期間限使用 1 次",
+      "活動期間總回饋上限 100 點",
+      "適用門市請以 PayPay App 顯示為準"
+    ],
+    "capturedAt": "2026-07-13T18:32:00+09:00"
   }
+
 
 ])
 
@@ -323,13 +771,19 @@ const reportForm = ref({
 })
 
 const filteredDeals = computed(() => {
-  if (selectedCategory.value === 'all') {
-    return todayDeals.value
-  }
+  return todayDeals.value
+    .filter(isDealActive)
+    .filter((deal) => {
+      if (selectedCategory.value === 'all') {
+        return true
+      }
 
-  return todayDeals.value.filter(
-    deal => deal.category === selectedCategory.value,
-  )
+      if (selectedCategory.value === 'paypay') {
+        return deal.platform === 'PayPay'
+      }
+
+      return deal.category === selectedCategory.value
+    })
 })
 
 const featuredDeal = computed(() =>
@@ -390,6 +844,26 @@ const copyReferralCode = async () => {
   }
 }
 
+
+const isDealActive = (deal) => {
+  const end = getDealEndDate(deal)
+
+  if (!end) {
+    return true
+  }
+
+  return Date.now() <= end.getTime()
+}
+
+const getDealEndDate = (deal) => {
+  if (!deal.endDate) {
+    return null
+  }
+
+  return new Date(`${deal.endDate}T23:59:59+09:00`)
+}
+
+
 const getDeadlineText = (deal) => {
   if (!deal.endDate) {
     return deal.deadlineText || '截止日期待確認'
@@ -430,7 +904,39 @@ const getDeadlineText = (deal) => {
     return `剩 ${diffDays} 天`
   }
 
+
+
+
   return `${end.getMonth() + 1}/${end.getDate()} 截止`
+}
+
+const getCategoryCover = (category) => {
+  return categoryCovers[category] || '/img/covers/default.webp'
+}
+
+const getRemainingDays = (deal) => {
+  if (!deal.endDate) {
+    return Infinity
+  }
+
+  const now = new Date()
+  const end = new Date(`${deal.endDate}T23:59:59+09:00`)
+
+  const todayStart = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+  )
+
+  const endStart = new Date(
+    end.getFullYear(),
+    end.getMonth(),
+    end.getDate(),
+  )
+
+  return Math.ceil(
+    (endStart.getTime() - todayStart.getTime()) / 86400000,
+  )
 }
 </script>
 
@@ -567,35 +1073,84 @@ const getDeadlineText = (deal) => {
 
         <div class="deal-grid">
           <article v-for="deal in filteredDeals" :key="deal.id" class="deal-card">
-            <div class="deal-card-head">
-              <div class="merchant-avatar">
-                {{ deal.merchant.slice(0, 1) }}
+            <!-- 圖片區 -->
+            <div class="deal-cover">
+              <img :src="deal.image || getCategoryCover(deal.category)" :alt="`${deal.merchant || deal.brand} 優惠情境圖`"
+                loading="lazy" />
+
+              <div class="deal-cover-overlay"></div>
+
+              <div class="deal-cover-top">
+                <span class="deal-category">
+                  {{ getCategoryLabel(deal.category) }}
+                </span>
+
+                <span v-if="deal.featured" class="featured-tag">
+                  <Sparkles :size="13" />
+                  編輯推薦
+                </span>
               </div>
 
-              <div class="merchant-info">
-                <strong>{{ deal.merchant }}</strong>
-                <span>{{ deal.sourceType }}</span>
-              </div>
-
-              <div v-if="deal.verified" class="verified" title="已確認活動來源">
-                <CheckCircle2 :size="16" />
+              <div class="cover-reward">
+                <span>{{ deal.rewardLabel || '優惠回饋' }}</span>
+                <strong>{{ deal.rewardText }}</strong>
               </div>
             </div>
 
-            <div class="reward">
-              <strong>{{ deal.rewardText }}</strong>
-              <span>{{ deal.rewardLabel }}</span>
-            </div>
+            <!-- 卡片內容 -->
+            <div class="deal-card-body">
+              <div class="deal-card-head">
+                <div class="merchant-avatar">
+                  {{ (deal.merchant || deal.brand || '?').slice(0, 1) }}
+                </div>
 
-            <h3>{{ deal.title }}</h3>
-            <p>{{ deal.summary }}</p>
+                <div class="merchant-info">
+                  <div class="merchant-name">
+                    <strong>
+                      {{ deal.merchant || deal.brand }}
+                    </strong>
 
-            <div class="deal-bottom">
-              <!-- <div> -->
-              <small>{{ deal.location || '適用範圍待確認' }}</small>
+                    <CheckCircle2 v-if="deal.verified" class="verified" :size="15" aria-label="已確認活動來源" />
+                  </div>
 
-              <span>{{ getDeadlineText(deal) }}</span>
-              <!-- </div> -->
+                  <span>{{ deal.sourceType }}</span>
+                </div>
+              </div>
+
+              <div class="deal-content">
+                <h3>{{ deal.title }}</h3>
+
+                <p>{{ deal.summary }}</p>
+              </div>
+
+              <!-- 使用條件標籤 -->
+              <div v-if="deal.mustClaim || deal.minimumSpend > 0" class="deal-tags">
+                <span v-if="deal.mustClaim">
+                  需先領券
+                </span>
+
+                <span v-if="deal.minimumSpend > 0">
+                  滿 ¥{{ deal.minimumSpend.toLocaleString() }}
+                </span>
+
+                <span v-if="deal.usageLimit === 1">
+                  限用 1 次
+                </span>
+              </div>
+
+              <div class="deal-bottom">
+                <span class="deal-location">
+                  <MapPin :size="14" />
+                  {{ deal.location || '適用範圍待確認' }}
+                </span>
+
+                <span class="deal-deadline" :class="{
+                  urgent: getRemainingDays(deal) <= 3,
+                }">
+                  <Clock3 :size="14" />
+                  {{ getDeadlineText(deal) }}
+                </span>
+              </div>
             </div>
           </article>
         </div>
@@ -704,7 +1259,7 @@ const getDeadlineText = (deal) => {
         <div class="guide-grid">
 
           <article class="guide-card">
-            <span>STEP 1</span>
+            <!-- <span>STEP 1</span> -->
 
             <img src="/img/paypay-step1.webp">
 
@@ -718,7 +1273,7 @@ const getDeadlineText = (deal) => {
 
           <article class="guide-card">
 
-            <span>STEP 2</span>
+            <!-- <span>STEP 2</span> -->
 
             <img src="/img/paypay-step2.webp">
 
@@ -733,7 +1288,7 @@ const getDeadlineText = (deal) => {
 
           <article class="guide-card">
 
-            <span>STEP 3</span>
+            <!-- <span>STEP 3</span> -->
 
             <img src="/img/paypay-step3.webp">
 
@@ -2212,6 +2767,234 @@ button {
   letter-spacing: 0.035em;
 }
 
+.deal-card {
+  min-width: 0;
+  border: 1px solid #e3e8f0;
+  border-radius: 24px;
+  overflow: hidden;
+  background: #ffffff;
+  box-shadow: 0 16px 44px rgba(23, 32, 51, 0.07);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.deal-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 24px 54px rgba(23, 32, 51, 0.12);
+}
+
+.deal-cover {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: #eef2f7;
+}
+
+.deal-cover img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.deal-card:hover .deal-cover img {
+  transform: scale(1.035);
+}
+
+.deal-cover-overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      to bottom,
+      rgba(15, 23, 42, 0.1) 0%,
+      transparent 42%,
+      rgba(15, 23, 42, 0.66) 100%
+    );
+}
+
+.deal-cover-top {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  right: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.deal-category,
+.featured-tag {
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 850;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.deal-category {
+  color: #172033;
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.featured-tag {
+  color: #ffffff;
+  background: rgba(53, 111, 255, 0.9);
+}
+
+.cover-reward {
+  position: absolute;
+  right: 16px;
+  bottom: 15px;
+  left: 16px;
+  color: #ffffff;
+}
+
+.cover-reward span,
+.cover-reward strong {
+  display: block;
+}
+
+.cover-reward span {
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0.82;
+}
+
+.cover-reward strong {
+  margin-top: 3px;
+  font-size: 29px;
+  line-height: 1;
+  letter-spacing: -0.055em;
+}
+
+.deal-card-body {
+  padding: 19px;
+}
+
+.deal-card-head {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.merchant-avatar {
+  width: 39px;
+  height: 39px;
+  border-radius: 13px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  color: #ffffff;
+  background: #172033;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.merchant-info {
+  min-width: 0;
+}
+
+.merchant-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.merchant-name strong {
+  overflow: hidden;
+  color: #172033;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.merchant-info > span {
+  display: block;
+  margin-top: 3px;
+  color: #8790a2;
+  font-size: 11px;
+}
+
+.verified {
+  flex-shrink: 0;
+  color: #356fff;
+}
+
+.deal-content h3 {
+  margin: 17px 0 8px;
+  color: #172033;
+  font-size: 18px;
+  line-height: 1.4;
+  letter-spacing: -0.035em;
+}
+
+.deal-content p {
+  margin: 0;
+  color: #697386;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.deal-tags {
+  margin-top: 15px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.deal-tags span {
+  padding: 6px 9px;
+  border-radius: 999px;
+  color: #596579;
+  background: #f1f4f8;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.deal-bottom {
+  margin-top: 18px;
+  padding-top: 15px;
+  border-top: 1px solid #edf0f4;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.deal-location,
+.deal-deadline {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #8790a2;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.deal-location {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deal-deadline {
+  flex-shrink: 0;
+}
+
+.deal-deadline.urgent {
+  color: #e5573f;
+}
+
 @media (max-width: 880px) {
   .page {
     padding: 18px;
@@ -2535,6 +3318,7 @@ button {
     font-size: 13px;
   }
 }
+
 @media (max-width: 640px) {
   .paypay-download-actions {
     flex-direction: column;
@@ -2549,6 +3333,33 @@ button {
 
   .download-hint {
     font-size: 11px;
+  }
+}
+@media (max-width: 640px) {
+  .deal-card {
+    border-radius: 20px;
+  }
+
+  .deal-card-body {
+    padding: 16px;
+  }
+
+  .cover-reward strong {
+    font-size: 25px;
+  }
+
+  .deal-content h3 {
+    font-size: 17px;
+  }
+
+  .deal-bottom {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .deal-location {
+    white-space: normal;
   }
 }
 </style>
