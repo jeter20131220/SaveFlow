@@ -492,9 +492,9 @@ const getDeadlineText = (deal) => {
             <ChevronRight :size="17" />
           </a>
 
-          <button @click="changePage('report')">
+          <!-- <button @click="changePage('report')">
             我發現新的優惠
-          </button>
+          </button> -->
         </div>
       </section>
 
@@ -615,10 +615,10 @@ const getDeadlineText = (deal) => {
           </p>
         </div>
 
-        <button @click="changePage('history')">
+        <!-- <button @click="changePage('history')">
           查看過往活動
           <ChevronRight :size="16" />
-        </button>
+        </button> -->
       </section>
       <section   id="paypay-beginner" class="paypay-referral">
         <div class="referral-main">
