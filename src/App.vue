@@ -171,7 +171,7 @@ const todayDeals = ref([
       "限支援 Coke ON Pay 自動販賣機",
       "限線上領取優惠券"
     ]
-  } ,
+  },
   {
     "id": "paypay-matsuyafoods-20260713-001",
     "platform": "PayPay",
@@ -437,7 +437,7 @@ const getDeadlineText = (deal) => {
 <template>
   <main class="page">
     <nav class="nav">
-      <button class="brand" @click="changePage('today')">
+      <a class="brand" href="#top">
         <div class="logo">
           <WalletCards :size="21" />
         </div>
@@ -446,25 +446,25 @@ const getDeadlineText = (deal) => {
           <strong>SaveFlow</strong>
           <span>日本生活省錢助手</span>
         </div>
-      </button>
+      </a>
 
       <div class="nav-actions">
-        <button :class="{ active: activePage === 'today' }" @click="changePage('today')">
-          今日優惠
-        </button>
+        <a href="#featured">
+          今日精選
+        </a>
 
-        <button :class="{ active: activePage === 'history' }" @click="changePage('history')">
-          過往活動
-        </button>
+        <a href="#today-deals">
+          優惠分類
+        </a>
 
-        <button :class="{ active: activePage === 'sources' }" @click="changePage('sources')">
-          資料來源
-        </button>
+        <a href="#paypay-beginner">
+          PayPay 新手
+        </a>
 
-        <button class="report-nav-btn" @click="changePage('report')">
-          <MessageSquarePlus :size="16" />
-          回報優惠
-        </button>
+        <a class="report-nav-btn" href="#today-deals">
+          查看今日優惠
+          <ChevronRight :size="16" />
+        </a>
       </div>
     </nav>
 
@@ -498,7 +498,7 @@ const getDeadlineText = (deal) => {
         </div>
       </section>
 
-      <section v-if="featuredDeal" class="featured-section">
+      <section   id="featured" v-if="featuredDeal" class="featured-section">
         <div class="featured-label">
           <Sparkles :size="15" />
           今日最值得注意
@@ -545,7 +545,7 @@ const getDeadlineText = (deal) => {
         </article>
       </section>
 
-      <section id="today-deals" class="deals-section">
+      <section  id="today-deals" class="deals-section">
         <div class="section-head">
           <div>
             <span class="eyebrow">TODAY</span>
@@ -592,9 +592,9 @@ const getDeadlineText = (deal) => {
 
             <div class="deal-bottom">
               <!-- <div> -->
-                <small>{{ deal.location || '適用範圍待確認' }}</small>
+              <small>{{ deal.location || '適用範圍待確認' }}</small>
 
-                <span>{{ getDeadlineText(deal) }}</span>
+              <span>{{ getDeadlineText(deal) }}</span>
               <!-- </div> -->
             </div>
           </article>
@@ -620,7 +620,7 @@ const getDeadlineText = (deal) => {
           <ChevronRight :size="16" />
         </button>
       </section>
-      <section class="paypay-referral">
+      <section   id="paypay-beginner" class="paypay-referral">
         <div class="referral-main">
           <div class="referral-badge">
             <CreditCard :size="15" />
@@ -909,6 +909,12 @@ html {
   scroll-behavior: smooth;
 }
 
+#featured,
+#today-deals,
+#paypay-beginner {
+  scroll-margin-top: 32px;
+}
+
 button,
 input,
 textarea {
@@ -961,6 +967,7 @@ button {
   gap: 12px;
   color: inherit;
   text-align: left;
+  text-decoration: none;
 }
 
 .logo {
@@ -996,7 +1003,7 @@ button {
   gap: 5px;
 }
 
-.nav-actions button {
+.nav-actions a {
   height: 40px;
   padding: 0 13px;
   border: 0;
@@ -1005,10 +1012,13 @@ button {
   color: #697386;
   font-size: 14px;
   font-weight: 700;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.nav-actions button:hover,
-.nav-actions button.active {
+.nav-actions a:hover {
   color: #172033;
   background: white;
 }
@@ -1021,6 +1031,11 @@ button {
   gap: 7px;
   color: white;
   background: #356fff;
+}
+
+.nav-actions .report-nav-btn:hover {
+  color: white;
+  background: #285fe8;
 }
 
 .hero {
@@ -1986,15 +2001,22 @@ button {
     padding: 18px;
   }
 
-  .nav {
-    margin-bottom: 49px;
-    align-items: flex-start;
+ .nav {
+    margin-bottom: 48px;
   }
 
-  .nav-actions {
-    max-width: 60%;
-    justify-content: flex-end;
-    flex-wrap: wrap;
+  .brand span {
+    display: none;
+  }
+
+  .nav-actions a:not(.report-nav-btn) {
+    display: none;
+  }
+
+  .nav-actions .report-nav-btn {
+    margin-left: 0;
+    padding: 0 12px;
+    font-size: 13px;
   }
 
   .featured-card,
@@ -2021,14 +2043,22 @@ button {
 }
 
 @media (max-width: 620px) {
-  .nav {
-    display: block;
+ .nav {
+    margin-bottom: 48px;
   }
 
-  .nav-actions {
-    max-width: none;
-    margin-top: 17px;
-    justify-content: flex-start;
+  .brand span {
+    display: none;
+  }
+
+  .nav-actions a:not(.report-nav-btn) {
+    display: none;
+  }
+
+  .nav-actions .report-nav-btn {
+    margin-left: 0;
+    padding: 0 12px;
+    font-size: 13px;
   }
 
   .hero h1 {
@@ -2077,6 +2107,142 @@ button {
 
   .footer p {
     margin-top: 13px;
+  }
+}
+/* =========================
+   PayPay Referral RWD
+========================= */
+
+@media (max-width: 900px) {
+  .paypay-referral {
+    grid-template-columns: 1fr;
+    gap: 22px;
+    padding: 24px;
+  }
+
+  .referral-code-box,
+  .referral-description,
+  .referral-notice {
+    max-width: none;
+  }
+
+  .referral-side {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .referral-steps {
+    margin-top: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .paypay-referral {
+    margin-top: 18px;
+    padding: 20px;
+    border-radius: 22px;
+    gap: 20px;
+  }
+
+  .referral-main h2 {
+    margin-top: 12px;
+    font-size: 27px;
+  }
+
+  .referral-description {
+    font-size: 14px;
+    line-height: 1.7;
+  }
+
+  .referral-code-box {
+    margin-top: 18px;
+    padding: 14px;
+    border-radius: 17px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 13px;
+  }
+
+  .referral-code-content {
+    text-align: center;
+  }
+
+  .referral-code-content strong {
+    font-size: 22px;
+  }
+
+  .copy-code-btn {
+    width: 100%;
+    height: 45px;
+  }
+
+  .referral-side {
+    padding: 19px;
+    border-radius: 19px;
+    display: block;
+  }
+
+  .referral-point {
+    text-align: center;
+  }
+
+  .referral-point strong {
+    font-size: 28px;
+  }
+
+  .referral-steps {
+    margin-top: 20px;
+  }
+}
+
+@media (max-width: 420px) {
+  .paypay-referral {
+    padding: 17px;
+    border-radius: 19px;
+  }
+
+  .referral-badge {
+    padding: 6px 9px;
+    font-size: 10px;
+  }
+
+  .referral-main h2 {
+    font-size: 24px;
+  }
+
+  .referral-description {
+    font-size: 13px;
+  }
+
+  .referral-code-content strong {
+    font-size: 19px;
+    letter-spacing: 0.035em;
+  }
+
+  .referral-notice {
+    gap: 7px;
+  }
+
+  .referral-notice p {
+    font-size: 11px;
+  }
+
+  .referral-side {
+    padding: 16px;
+  }
+
+  .referral-point strong {
+    font-size: 25px;
+  }
+
+  .referral-steps > div {
+    padding: 10px;
+  }
+
+  .referral-steps p {
+    font-size: 12px;
   }
 }
 </style>
