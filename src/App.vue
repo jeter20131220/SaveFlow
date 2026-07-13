@@ -498,7 +498,7 @@ const getDeadlineText = (deal) => {
         </div>
       </section>
 
-      <section   id="featured" v-if="featuredDeal" class="featured-section">
+      <section id="featured" v-if="featuredDeal" class="featured-section">
         <div class="featured-label">
           <Sparkles :size="15" />
           今日最值得注意
@@ -545,7 +545,7 @@ const getDeadlineText = (deal) => {
         </article>
       </section>
 
-      <section  id="today-deals" class="deals-section">
+      <section id="today-deals" class="deals-section">
         <div class="section-head">
           <div>
             <span class="eyebrow">TODAY</span>
@@ -620,7 +620,7 @@ const getDeadlineText = (deal) => {
           <ChevronRight :size="16" />
         </button> -->
       </section>
-      <section   id="paypay-beginner" class="paypay-referral">
+      <section id="paypay-beginner" class="paypay-referral">
         <div class="referral-main">
           <div class="referral-badge">
             <CreditCard :size="15" />
@@ -695,6 +695,81 @@ const getDeadlineText = (deal) => {
             </div>
           </div>
         </div>
+
+      </section>
+      <section class="referral-guide">
+
+        <h3>如何領取 300 點？</h3>
+
+        <div class="guide-grid">
+
+          <article class="guide-card">
+            <span>STEP 1</span>
+
+            <img src="/img/paypay-step1.webp">
+
+            <h4>輸入好友介紹碼</h4>
+
+            <p>
+              點擊好友邀請連結後，
+              在頁面輸入介紹碼。
+            </p>
+          </article>
+
+          <article class="guide-card">
+
+            <span>STEP 2</span>
+
+            <img src="/img/paypay-step2.webp">
+
+            <h4>完成 PayPay 設定</h4>
+
+            <p>
+              依照畫面完成設定，
+              準備開始使用 PayPay。
+            </p>
+
+          </article>
+
+          <article class="guide-card">
+
+            <span>STEP 3</span>
+
+            <img src="/img/paypay-step3.webp">
+
+            <h4>完成指定條件</h4>
+
+            <p>
+              60 天內累積支付滿
+              1,000 日圓即可獲得
+              300 點。
+            </p>
+
+          </article>
+
+        </div>
+
+        <small>
+          圖片來源：PayPay 官方活動頁面，實際活動內容請以官方公告為準。
+        </small>
+        <div class="paypay-download-actions">
+          <button type="button" class="copy-code-btn" @click="copyReferralCode">
+            <CheckCircle2 v-if="referralCopied" :size="17" />
+            <Copy v-else :size="17" />
+
+            {{ referralCopied ? '介紹碼已複製' : '先複製介紹碼' }}
+          </button>
+
+          <a class="download-paypay-btn" href="https://s.paypay.ne.jp/Sj5MRR" target="_blank" rel="noopener noreferrer">
+            下載 PayPay App
+            <ExternalLink :size="17" />
+          </a>
+        </div>
+
+        <p class="download-hint">
+          下載並註冊後，請在新會員註冊畫面或「好友介紹特典」頁面輸入介紹碼
+          <strong>{{ payPayReferralCode }}</strong>。
+        </p>
       </section>
     </template>
 
@@ -1996,12 +2071,153 @@ button {
   margin: 0;
 }
 
+.referral-guide {
+  max-width: 1160px;
+  margin: 22px auto 0;
+  padding: 28px;
+  border: 1px solid #e3e8f0;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 20px 60px rgba(23, 32, 51, 0.07);
+}
+
+.referral-guide h3 {
+  margin: 0;
+  color: #172033;
+  font-size: 28px;
+  letter-spacing: -0.045em;
+}
+
+.guide-grid {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.guide-card {
+  padding: 18px;
+  border: 1px solid #e3e8f0;
+  border-radius: 21px;
+  background: #ffffff;
+  overflow: hidden;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.guide-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 34px rgba(23, 32, 51, 0.1);
+}
+
+.guide-card>span {
+  width: fit-content;
+  padding: 6px 10px;
+  border-radius: 999px;
+  display: inline-flex;
+  color: #ff7a22;
+  background: #fff3e9;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.guide-card img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  margin-top: 15px;
+  border-radius: 15px;
+  display: block;
+  object-fit: contain;
+  background: #f8fafc;
+}
+
+.guide-card h4 {
+  margin: 17px 0 7px;
+  color: #172033;
+  font-size: 18px;
+  letter-spacing: -0.025em;
+}
+
+.guide-card p {
+  margin: 0;
+  color: #697386;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.referral-guide>small {
+  margin-top: 18px;
+  display: block;
+  color: #8790a2;
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.paypay-download-actions {
+  max-width: 650px;
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-self: center;
+}
+
+.download-paypay-btn {
+  min-height: 43px;
+  padding: 0 17px;
+  border: 1px solid #356fff;
+  border-radius: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  color: #356fff;
+  background: rgba(53, 111, 255, 0.06);
+  font-size: 14px;
+  font-weight: 850;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    color 0.18s ease,
+    background 0.18s ease,
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.download-paypay-btn:hover {
+  color: #ffffff;
+  background: #356fff;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(53, 111, 255, 0.22);
+}
+
+.download-paypay-btn:active {
+  transform: translateY(0);
+}
+
+.download-hint {
+  /* max-width: 650px; */
+  margin: 11px 0 0;
+  color: #697386;
+  font-size: 12px;
+  line-height: 1.65;
+  text-align: center;
+}
+
+.download-hint strong {
+  color: #172033;
+  font-weight: 900;
+  letter-spacing: 0.035em;
+}
+
 @media (max-width: 880px) {
   .page {
     padding: 18px;
   }
 
- .nav {
+  .nav {
     margin-bottom: 48px;
   }
 
@@ -2043,7 +2259,7 @@ button {
 }
 
 @media (max-width: 620px) {
- .nav {
+  .nav {
     margin-bottom: 48px;
   }
 
@@ -2109,6 +2325,7 @@ button {
     margin-top: 13px;
   }
 }
+
 /* =========================
    PayPay Referral RWD
 ========================= */
@@ -2237,12 +2454,101 @@ button {
     font-size: 25px;
   }
 
-  .referral-steps > div {
+  .referral-steps>div {
     padding: 10px;
   }
 
   .referral-steps p {
     font-size: 12px;
+  }
+}
+
+@media (max-width: 900px) {
+  .guide-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .guide-card {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    grid-template-areas:
+      "image step"
+      "image title"
+      "image text";
+    column-gap: 20px;
+    align-items: start;
+  }
+
+  .guide-card>span {
+    grid-area: step;
+  }
+
+  .guide-card img {
+    grid-area: image;
+    margin-top: 0;
+    height: 100%;
+    min-height: 180px;
+  }
+
+  .guide-card h4 {
+    grid-area: title;
+    margin-top: 12px;
+  }
+
+  .guide-card p {
+    grid-area: text;
+  }
+}
+
+@media (max-width: 640px) {
+  .referral-guide {
+    padding: 20px;
+    border-radius: 22px;
+  }
+
+  .referral-guide h3 {
+    font-size: 24px;
+  }
+
+  .guide-grid {
+    margin-top: 20px;
+    gap: 14px;
+  }
+
+  .guide-card {
+    padding: 15px;
+    border-radius: 18px;
+    display: block;
+  }
+
+  .guide-card img {
+    margin-top: 14px;
+    min-height: 0;
+  }
+
+  .guide-card h4 {
+    margin-top: 15px;
+    font-size: 17px;
+  }
+
+  .guide-card p {
+    font-size: 13px;
+  }
+}
+@media (max-width: 640px) {
+  .paypay-download-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .paypay-download-actions .copy-code-btn,
+  .download-paypay-btn {
+    width: 100%;
+    min-height: 46px;
+  }
+
+  .download-hint {
+    font-size: 11px;
   }
 }
 </style>
