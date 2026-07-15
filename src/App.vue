@@ -1969,7 +1969,7 @@ a {
   font-size: 12px;
   line-height: 1.7;
 
-  white-space: nowrap;
+  /* white-space: nowrap; */
 }
 
 .state-card {
@@ -2149,6 +2149,13 @@ a {
 }
 
 @media (max-width: 720px) {
+  .price-box strong{
+    display: inline;
+    /* margin-left: auto; */
+  }
+    .price-box a{
+      margin-left: 30px;
+    }
   .page {
     width: min(100% - 20px,
         1180px);
