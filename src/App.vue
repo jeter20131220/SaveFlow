@@ -1,1536 +1,1111 @@
 <script setup>
-import { computed, ref } from 'vue'
 import {
-  WalletCards,
+  computed,
+  onMounted,
+  ref,
+} from 'vue'
+
+import {
   CalendarDays,
-  Clock3,
-  ExternalLink,
-  History,
-  MessageSquarePlus,
-  BadgePercent,
-  Store,
-  ShoppingBag,
-  CreditCard,
-  ChevronRight,
   CheckCircle2,
-  Info,
-  Send,
-  Search,
+  ExternalLink,
+  Moon,
+  Plane,
+  RefreshCw,
   Sparkles,
-  MapPin,
-  Copy,
+  Sun,
 } from 'lucide-vue-next'
 
-const activePage = ref('today')
-const selectedCategory = ref('all')
-const submitted = ref(false)
+import { createClient } from '@supabase/supabase-js'
 
-const today = new Date()
+// ======================================================
+// Supabase
+// ======================================================
 
-const formatToday = new Intl.DateTimeFormat('zh-TW', {
-  year: 'numeric',
-  month: 'long',
-  day: 'numeric',
-  weekday: 'long',
-}).format(today)
+const SUPABASE_URL =
+  'https://rrukbblbbizycawbvprr.supabase.co'
 
-const categories = [
-  { id: 'all', label: '全部' },
-  { id: 'paypay', label: 'PayPay' },
-  { id: 'convenience', label: '便利商店' },
-  { id: 'supermarket', label: '超市' },
-  { id: 'drugstore', label: '藥妝' },
-  { id: 'food', label: '餐飲' },
-  { id: 'shopping', label: '購物' },
-  { id: 'travel', label: '旅遊' }
-  
-]
+// 只能放 anon / publishable key。
+// 不可以放 service_role key。
+const SUPABASE_ANON_KEY =
+  'sb_publishable_r4au429bqxD2XwaiQAvwcw_ytAlHh4m'
 
-
-const categoryCovers = {
-  paypay: '/img/covers/paypay.webp',
-  convenience: '/img/covers/convenience.webp',
-  supermarket: '/img/covers/supermarket.webp',
-  drugstore: '/img/covers/drugstore.webp',
-  food: '/img/covers/food.webp',
-  shopping: '/img/covers/shopping.webp',
-  travel: '/img/covers/travel.webp',
-  fashion: '/img/covers/shopping.webp',
-  electronics: '/img/covers/shopping.webp',
-}
-
-
-
-const getCategoryLabel = (categoryId) => {
-  return (
-    categories.find((category) => category.id === categoryId)?.label ||
-    '其他'
-  )
-}
-
-/**
- * Demo JSON
- *
- * 正式上線後可改成：
- * axios.get('/api/deals/today')
- */
-const todayDeals = ref([
-  {
-    "id": "paypay-7eleven-20260713-001",
-    "platform": "PayPay",
-    "category": "convenience",
-    "brand": "7-Eleven",
-    "merchant": "セブン-イレブン",
-    "title": "7-Eleven PayPay 付款最高回饋 10%",
-    "summary": "透過 7-Eleven App 使用 PayPay 付款，最高回饋 10%。",
-    "rewardType": "percentage",
-    "rewardValue": 10,
-    "rewardText": "最高 10%",
-    "minimumSpend": 0,
-    "rewardLimit": 100,
-    "usageLimit": 1,
-    "startDate": null,
-    "endDate": "2026-07-31",
-    "deadlineText": "2026-07-31 23:59",
-    "location": "日本",
-    "mustClaim": true,
-    "personalized": true,
-    "eligibleForAllUsers": false,
-    "sourceType": "PayPay Coupon",
-    "sourceUrl": null,
-    "verified": true,
-    "featured": false,
-    "notes": [
-      "SoftBank 用戶限定",
-      "需綁定 Yahoo! JAPAN ID",
-      "需透過 7-Eleven App",
-      "菸品不適用"
-    ]
-  },
-  {
-    "id": "paypay-jins-20260713-001",
-    "platform": "PayPay",
-    "category": "fashion",
-    "brand": "JINS",
-    "merchant": "JINS",
-    "title": "JINS 消費最高回饋 10%",
-    "summary": "JINS 購物最高回饋 10%。",
-    "rewardType": "percentage",
-    "rewardValue": 10,
-    "rewardText": "最高 10%",
-    "minimumSpend": 9900,
-    "rewardLimit": 1000,
-    "usageLimit": 1,
-    "startDate": null,
-    "endDate": "2026-07-26",
-    "deadlineText": "2026-07-26 23:59",
-    "location": "日本",
-    "mustClaim": true,
-    "personalized": null,
-    "eligibleForAllUsers": null,
-    "sourceType": "PayPay Coupon",
-    "sourceUrl": null,
-    "verified": true,
-    "featured": false,
-    "notes": [
-      "需先追蹤並領取優惠券"
-    ]
-  },
-  {
-    "id": "paypay-klook-20260713-001",
-    "platform": "PayPay",
-    "category": "travel",
-    "brand": "Klook",
-    "merchant": "Klook",
-    "title": "Klook 最高贈送 999 點 PayPay Point",
-    "summary": "每月 9、19、29 日可使用，符合條件最高獲得 999 點。",
-    "rewardType": "points",
-    "rewardValue": 999,
-    "rewardText": "最高 999 點",
-    "minimumSpend": 10000,
-    "rewardLimit": 999,
-    "usageLimit": 1,
-    "startDate": null,
-    "endDate": "2026-07-19",
-    "deadlineText": "2026-07-19 23:59",
-    "location": "線上",
-    "mustClaim": true,
-    "personalized": null,
-    "eligibleForAllUsers": null,
-    "sourceType": "PayPay Coupon",
-    "sourceUrl": null,
-    "verified": true,
-    "featured": true,
-    "notes": [
-      "每月 9、19、29 日可使用",
-      "限線上付款"
-    ]
-  },
-  {
-    "id": "paypay-cokeon-20260713-001",
-    "platform": "PayPay",
-    "category": "food",
-    "brand": "Coke ON",
-    "merchant": "Coke ON",
-    "title": "首次使用 PayPay 購買飲料最高回饋 50%",
-    "summary": "於支援 Coke ON Pay 的販賣機首次使用 PayPay 購買飲料可享最高 50% 回饋。",
-    "rewardType": "percentage",
-    "rewardValue": 50,
-    "rewardText": "最高 50%",
-    "minimumSpend": 0,
-    "rewardLimit": 100,
-    "usageLimit": 1,
-    "startDate": null,
-    "endDate": "2026-08-31",
-    "deadlineText": "2026-08-31 23:59",
-    "location": "日本",
-    "mustClaim": true,
-    "personalized": null,
-    "eligibleForAllUsers": null,
-    "sourceType": "PayPay Coupon",
-    "sourceUrl": null,
-    "verified": true,
-    "featured": true,
-    "notes": [
-      "首次使用 PayPay",
-      "限支援 Coke ON Pay 自動販賣機",
-      "限線上領取優惠券"
-    ]
-  },
-  {
-    "id": "paypay-matsuyafoods-20260713-001",
-    "platform": "PayPay",
-    "category": "food",
-    "brand": "松屋フーズ",
-    "merchant": "松屋フーズ",
-    "title": "松屋 Food PayPay 付款最高回饋 10%",
-    "summary": "SoftBank 用戶限定，使用 PayPay 付款可獲得最高 10% PayPay Point 回饋。",
-    "rewardType": "percentage",
-    "rewardValue": 10,
-    "rewardText": "最高 10%",
-    "rewardLabel": "PayPay 點數回饋",
-    "minimumSpend": 0,
-    "rewardLimit": 100,
-    "usageLimit": 1,
-    "startDate": null,
-    "endDate": "2026-07-31",
-    "deadlineText": "2026-07-31 23:59",
-    "location": "日本指定門市",
-    "mustClaim": true,
-    "personalized": false,
-    "eligibleForAllUsers": false,
-    "sourceType": "PayPay Super Coupon",
-    "sourceUrl": null,
-    "verified": true,
-    "featured": false,
-    "notes": [
-      "SoftBank 用戶限定",
-      "使用優惠券前需將 PayPay 帳號與已完成 Smart Login 設定的 Yahoo! JAPAN ID 綁定",
-      "單次回饋上限 100 點",
-      "活動期間僅可使用 1 次",
-      "總回饋上限 100 點"
-    ],
-    "capturedAt": "2026-07-13T14:32:00+09:00"
-  },
-  {
-    "id": "paypay-mosburger-20260713-001",
-    "platform": "PayPay",
-    "category": "food",
-    "brand": "モスバーガー",
-    "merchant": "モスバーガー",
-    "title": "摩斯漢堡 PayPay 付款最高回饋 10%",
-    "summary": "SoftBank 用戶限定，使用 PayPay 付款可獲得最高 10% PayPay Point 回饋。",
-    "rewardType": "percentage",
-    "rewardValue": 10,
-    "rewardText": "最高 10%",
-    "rewardLabel": "PayPay 點數回饋",
-    "minimumSpend": 0,
-    "rewardLimit": 100,
-    "usageLimit": 1,
-    "startDate": null,
-    "endDate": "2026-07-31",
-    "deadlineText": "2026-07-31 23:59",
-    "location": "日本指定門市",
-    "mustClaim": true,
-    "personalized": false,
-    "eligibleForAllUsers": false,
-    "sourceType": "PayPay Super Coupon",
-    "sourceUrl": null,
-    "verified": true,
-    "featured": false,
-    "notes": [
-      "SoftBank 用戶限定",
-      "使用優惠券前需將 PayPay 帳號與已完成 Smart Login 設定的 Yahoo! JAPAN ID 綁定",
-      "單次回饋上限 100 點",
-      "活動期間僅可使用 1 次",
-      "總回饋上限 100 點"
-    ],
-    "capturedAt": "2026-07-13T14:32:00+09:00"
-  },
-  {
-    "id": "paypay-welcia-20260713-001",
-    "merchant": "Welcia",
-    "category": "drugstore",
-
-    "title": "Welcia 最高 7% PayPay 點數回饋",
-
-    "summary": "透過 Welcia App 使用 PayPay 付款，可享最高 7% PayPay Point 回饋。",
-
-    "rewardType": "percent",
-    "rewardValue": 7,
-    "rewardText": "最高 7%",
-    "rewardLabel": "PayPay 點數回饋",
-
-    "minimumSpend": 2000,
-
-    "pointLimit": 300,
-
-    "usageLimit": 1,
-
-    "startDate": null,
-    "endDate": "2026-07-31",
-
-    "deadline": "2026-07-31 23:59",
-
-    "location": "日本 Welcia 門市",
-
-    "mustClaim": true,
-
-    "verified": true,
-
-    "featured": false,
-
-    "sourceType": "PayPay Coupon",
-
-    "image": "",
-
-    "tags": [
-      "PayPay",
-      "Welcia",
-      "藥妝"
-    ],
-
-    "notes": [
-      "僅限 Welcia Group App 使用 PayPay 付款",
-      "最低支付金額 2,000 日圓",
-      "單次最高回饋 300 點",
-      "活動期間限使用 1 次"
-    ],
-
-    "capturedAt": "2026-07-13T16:43:00+09:00"
-  },
-  {
-    "id": "paypay-yoshinoya-20260713-001",
-    "merchant": "吉野家",
-    "category": "food",
-
-    "title": "吉野家最高 5% PayPay 點數回饋",
-
-    "summary": "LYP Premium 會員限定，使用 PayPay 付款可享最高 5% PayPay Point 回饋。",
-
-    "rewardType": "percent",
-    "rewardValue": 5,
-    "rewardText": "最高 5%",
-    "rewardLabel": "PayPay 點數回饋",
-
-    "minimumSpend": 0,
-
-    "pointLimit": 100,
-
-    "usageLimit": 1,
-
-    "startDate": null,
-    "endDate": "2026-07-31",
-
-    "deadline": "2026-07-31 23:59",
-
-    "location": "日本指定吉野家門市",
-
-    "mustClaim": true,
-
-    "verified": true,
-
-    "featured": false,
-
-    "sourceType": "LYP Premium Coupon",
-
-    "image": "",
-
-    "tags": [
-      "PayPay",
-      "LYP Premium",
-      "吉野家"
-    ],
-
-    "notes": [
-      "限 LYP Premium 會員",
-      "需綁定 PayPay 與 LYP 帳號",
-      "單次最高回饋 100 點",
-      "活動期間限使用 1 次",
-      "優惠可能提前結束"
-    ],
-
-    "capturedAt": "2026-07-13T17:29:00+09:00"
-  },
-
-  {
-    "id": "paypay-meiji-savas-biopro-20260713-001",
-    "platform": "PayPay",
-    "category": "shopping",
-    "brand": "明治",
-    "merchant": "明治",
-    "title": "SAVAS BIOPRO 蛋白粉最高回饋 30%",
-    "summary": "購買指定 SAVAS BIOPRO Whey Protein 100 商品，可獲得最高 30% PayPay Point 回饋。",
-    "rewardType": "percentage",
-    "rewardValue": 30,
-    "rewardText": "最高 30%",
-    "rewardLabel": "PayPay 點數回饋",
-    "minimumSpend": 0,
-    "rewardLimit": 10000,
-    "usageLimit": 3,
-    "startDate": null,
-    "endDate": "2026-08-02",
-    "deadlineText": "2026-08-02 23:59",
-    "location": "日本指定販售通路",
-    "mustClaim": true,
-    "personalized": null,
-    "eligibleForAllUsers": null,
-    "sourceType": "PayPay Coupon",
-    "sourceUrl": null,
-    "verified": true,
-    "featured": true,
-    "notes": [
-      "僅限指定 SAVAS BIOPRO Whey Protein 100 商品",
-      "最低支付金額無限制，但僅計算活動指定商品的消費金額",
-      "單次最高回饋 10,000 點",
-      "活動期間最多使用 3 次",
-      "活動期間總回饋上限 10,000 點",
-      "適用商品與門市請以個人 PayPay App 顯示為準"
-    ],
-    "capturedAt": "2026-07-13T18:04:00+09:00"
-  },
-  {
-    "id": "paypay-ministop-20260713-001",
-    "platform": "PayPay",
-    "category": "convenience",
-    "brand": "ミニストップ",
-    "merchant": "ミニストップ",
-    "title": "MiniStop 使用 PayPay 付款最高回饋 3%",
-    "summary": "於活動指定 MiniStop 門市使用 PayPay 付款，可獲得最高 3% PayPay Point 回饋。",
-    "rewardType": "percentage",
-    "rewardValue": 3,
-    "rewardText": "最高 3%",
-    "rewardLabel": "PayPay 點數回饋",
-    "minimumSpend": 0,
-    "rewardLimit": 100,
-    "usageLimit": 1,
-    "startDate": null,
-    "endDate": "2026-07-19",
-    "deadlineText": "2026-07-19 23:59",
-    "location": "日本指定 MiniStop 門市",
-    "mustClaim": true,
-    "personalized": null,
-    "eligibleForAllUsers": null,
-    "sourceType": "PayPay Coupon",
-    "sourceUrl": null,
-    "verified": true,
-    "featured": false,
-    "notes": [
-      "單次最高回饋 100 點",
-      "活動期間限使用 1 次",
-      "總回饋上限 100 點",
-      "購買菸品的金額不適用優惠",
-      "適用門市請以 PayPay App 顯示為準"
-    ],
-    "capturedAt": "2026-07-13T17:58:00+09:00"
-  },
-  {
-    "id": "paypay-ministop-app-20260713-002",
-    "platform": "PayPay",
-    "category": "convenience",
-    "brand": "ミニストップ",
-    "merchant": "ミニストップ",
-    "title": "透過 MiniStop App 使用 PayPay 最高回饋 5%",
-    "summary": "透過 MiniStop App 使用 PayPay 付款，可獲得最高 5% PayPay Point 回饋。",
-    "rewardType": "percentage",
-    "rewardValue": 5,
-    "rewardText": "最高 5%",
-    "rewardLabel": "PayPay 點數回饋",
-    "minimumSpend": 0,
-    "rewardLimit": 100,
-    "usageLimit": 1,
-    "startDate": null,
-    "endDate": "2026-07-21",
-    "deadlineText": "2026-07-21 23:59",
-    "location": "日本指定 MiniStop 門市",
-    "mustClaim": true,
-    "personalized": null,
-    "eligibleForAllUsers": null,
-    "sourceType": "PayPay Coupon",
-    "sourceUrl": null,
-    "verified": true,
-    "featured": false,
-    "notes": [
-      "僅限透過 MiniStop App 使用 PayPay 付款",
-      "單次最高回饋 100 點",
-      "活動期間限使用 1 次",
-      "總回饋上限 100 點",
-      "購買菸品的金額不適用優惠"
-    ],
-    "capturedAt": "2026-07-13T17:58:00+09:00"
-  },
-  {
-    "id": "paypay-ueshima-coffee-20260713-001",
-    "platform": "PayPay",
-    "category": "food",
-    "brand": "上島珈琲店",
-    "merchant": "上島珈琲店",
-    "title": "上島珈琲店使用 PayPay 最高回饋 5%",
-    "summary": "於活動指定的上島珈琲店等門市使用 PayPay 付款，可獲得最高 5% PayPay Point 回饋。",
-    "rewardType": "percentage",
-    "rewardValue": 5,
-    "rewardText": "最高 5%",
-    "rewardLabel": "PayPay 點數回饋",
-    "minimumSpend": 0,
-    "rewardLimit": 500,
-    "usageLimit": null,
-    "startDate": null,
-    "endDate": "2026-07-31",
-    "deadlineText": "2026-07-31 23:59",
-    "location": "日本指定門市",
-    "mustClaim": true,
-    "personalized": null,
-    "eligibleForAllUsers": null,
-    "sourceType": "PayPay Coupon",
-    "sourceUrl": null,
-    "verified": true,
-    "featured": false,
-    "notes": [
-      "單次最高回饋 500 點",
-      "使用次數無限制",
-      "活動期間總回饋上限 500 點",
-      "圖片顯示的適用品牌可能包含上島珈琲店、UCC Café Plaza、Cafe Lounge Gate 53",
-      "實際適用門市請以 PayPay App 顯示為準"
-    ],
-    "capturedAt": "2026-07-13T18:01:00+09:00"
-  },
-  {
-    "id": "paypay-yahoo-shopping-softbank-20260713-001",
-    "platform": "PayPay",
-    "category": "shopping",
-    "brand": "Yahoo!ショッピング",
-    "merchant": "Yahoo!ショッピング",
-    "title": "Yahoo! Shopping 線上付款最高回饋 10%",
-    "summary": "SoftBank 用戶限定，於 Yahoo! Shopping 使用 PayPay 線上付款，可獲得最高 10% PayPay Point 回饋。",
-    "rewardType": "percentage",
-    "rewardValue": 10,
-    "rewardText": "最高 10%",
-    "rewardLabel": "PayPay 點數回饋",
-    "minimumSpend": 0,
-    "rewardLimit": 300,
-    "usageLimit": null,
-    "startDate": null,
-    "endDate": "2026-07-31",
-    "deadlineText": "2026-07-31 23:59",
-    "location": "Yahoo! Shopping 線上商城",
-    "mustClaim": true,
-    "personalized": false,
-    "eligibleForAllUsers": false,
-    "sourceType": "PayPay Super Coupon",
-    "sourceUrl": null,
-    "verified": true,
-    "featured": true,
-    "notes": [
-      "SoftBank 用戶限定",
-      "需將 PayPay 帳號與已完成 Smart Login 設定的 Yahoo! JAPAN ID 綁定",
-      "僅限線上付款",
-      "單次最高回饋 300 點",
-      "使用次數無限制",
-      "活動期間總回饋上限 300 點"
-    ],
-    "capturedAt": "2026-07-13T18:07:00+09:00"
-  },
-  {
-    "id": "paypay-zoff-store-20260713-001",
-    "platform": "PayPay",
-    "category": "fashion",
-    "brand": "Zoff",
-    "merchant": "Zoff",
-    "title": "Zoff 實體門市消費最高回饋 10%",
-    "summary": "於活動指定的 Zoff 實體門市消費滿 8,800 日圓，使用 PayPay 付款可獲得最高 10% 回饋。",
-    "rewardType": "percentage",
-    "rewardValue": 10,
-    "rewardText": "最高 10%",
-    "rewardLabel": "PayPay 點數回饋",
-    "minimumSpend": 8800,
-    "rewardLimit": 1000,
-    "usageLimit": 1,
-    "startDate": null,
-    "endDate": "2026-08-16",
-    "deadlineText": "2026-08-16 23:59",
-    "location": "日本指定 Zoff 實體門市",
-    "mustClaim": true,
-    "personalized": null,
-    "eligibleForAllUsers": null,
-    "sourceType": "PayPay Coupon",
-    "sourceUrl": null,
-    "verified": true,
-    "featured": true,
-    "notes": [
-      "僅限 Zoff 實體門市",
-      "最低支付金額 8,800 日圓",
-      "單次最高回饋 1,000 點",
-      "活動期間限使用 1 次",
-      "活動期間總回饋上限 1,000 點"
-    ],
-    "capturedAt": "2026-07-13T18:10:00+09:00"
-  },
-  {
-    "id": "paypay-yamada-webcom-20260713-001",
-    "platform": "PayPay",
-    "category": "electronics",
-    "brand": "ヤマダデンキ",
-    "merchant": "ヤマダウェブコム",
-    "title": "Yamada Web.com 消費滿 50,000 日圓贈送 2,000 點",
-    "summary": "於 Yamada Web.com 使用 PayPay Credit 支付滿 50,000 日圓，可獲得最高 2,000 點 PayPay Point。",
-    "rewardType": "points",
-    "rewardValue": 2000,
-    "rewardText": "最高 2,000 點",
-    "rewardLabel": "PayPay 點數回饋",
-    "minimumSpend": 50000,
-    "rewardLimit": 2000,
-    "usageLimit": 1,
-    "startDate": null,
-    "endDate": "2026-07-31",
-    "deadlineText": "2026-07-31 23:59",
-    "location": "ヤマダウェブコム線上商城",
-    "mustClaim": true,
-    "personalized": null,
-    "eligibleForAllUsers": null,
-    "sourceType": "PayPay Credit Coupon",
-    "sourceUrl": null,
-    "verified": true,
-    "featured": false,
-    "notes": [
-      "僅限使用 PayPay Credit 付款",
-      "最低支付金額 50,000 日圓",
-      "活動期間限使用 1 次",
-      "活動期間總回饋上限 2,000 點",
-      "僅使用 PayPay Point 或 PayPay 商品券付款時不適用"
-    ],
-    "capturedAt": "2026-07-13T18:14:00+09:00"
-  },
-  {
-    "id": "paypay-ecos-20260713-001",
-    "platform": "PayPay",
-    "category": "supermarket",
-    "brand": "エコスグループ",
-    "merchant": "エコスグループ",
-    "title": "Ecos Group 消費最高回饋 5%",
-    "summary": "於 Ecos Group 指定門市使用 PayPay 付款，最高可獲得 5% PayPay Point 回饋。",
-    "rewardType": "percentage",
-    "rewardValue": 5,
-    "rewardText": "最高 5%",
-    "rewardLabel": "PayPay 點數回饋",
-    "minimumSpend": 2000,
-    "rewardLimit": 1000,
-    "usageLimit": null,
-    "startDate": "2026-07-17",
-    "endDate": "2026-07-23",
-    "deadlineText": "2026-07-23 23:59",
-    "location": "日本指定 Ecos Group 門市",
-    "mustClaim": true,
-    "personalized": null,
-    "eligibleForAllUsers": null,
-    "sourceType": "PayPay Coupon",
-    "sourceUrl": null,
-    "verified": true,
-    "featured": true,
-    "notes": [
-      "最低消費 2,000 日圓",
-      "最高回饋 1,000 點",
-      "使用次數不限",
-      "活動期間總回饋上限 1,000 點",
-      "適用門市請以 PayPay App 顯示為準"
-    ],
-    "capturedAt": "2026-07-13T18:31:00+09:00"
-  }, {
-    "id": "paypay-ricos-20260713-001",
-    "platform": "PayPay",
-    "category": "supermarket",
-    "brand": "リコス",
-    "merchant": "リコス",
-    "title": "Rico's 消費最高回饋 5%",
-    "summary": "於 Rico's 指定門市使用 PayPay 付款，最高可獲得 5% PayPay Point 回饋。",
-    "rewardType": "percentage",
-    "rewardValue": 5,
-    "rewardText": "最高 5%",
-    "rewardLabel": "PayPay 點數回饋",
-    "minimumSpend": 2000,
-    "rewardLimit": 100,
-    "usageLimit": 1,
-    "startDate": null,
-    "endDate": "2027-02-28",
-    "deadlineText": "2027-02-28 23:59",
-    "location": "日本指定 Rico's 門市",
-    "mustClaim": true,
-    "personalized": null,
-    "eligibleForAllUsers": null,
-    "sourceType": "PayPay Coupon",
-    "sourceUrl": null,
-    "verified": true,
-    "featured": false,
-    "notes": [
-      "最低消費 2,000 日圓",
-      "單次最高回饋 100 點",
-      "活動期間限使用 1 次",
-      "活動期間總回饋上限 100 點",
-      "適用門市請以 PayPay App 顯示為準"
-    ],
-    "capturedAt": "2026-07-13T18:32:00+09:00"
-  }
-
-
-])
-
-const historyDeals = ref([
-  {
-    id: 101,
-    brand: 'PayPay',
-    merchant: 'FamilyMart',
-    title: '便利商店付款回饋',
-    rewardText: '最高 10%',
-    period: '2026/07/01－2026/07/07',
-    status: 'ended',
-    reports: 18,
-  },
-  {
-    id: 102,
-    brand: 'PayPay',
-    merchant: 'BicCamera',
-    title: '指定門市付款活動',
-    rewardText: '最高 5%',
-    period: '2026/06/15－2026/06/30',
-    status: 'ended',
-    reports: 9,
-  },
-  {
-    id: 103,
-    brand: 'Uniqlo',
-    merchant: 'Uniqlo',
-    title: '感謝祭期間限定價格',
-    rewardText: '指定商品特價',
-    period: '2026/05/22－2026/05/28',
-    status: 'ended',
-    reports: 31,
-  },
-])
-
-const payPaySources = [
-  {
-    title: 'PayPay 官方活動頁',
-    description: '全國性回饋活動、支付活動、抽獎與期間限定優惠。',
-    frequency: '每天檢查',
-    icon: BadgePercent,
-  },
-  {
-    title: 'PayPay App 優惠券',
-    description: '依照使用者、品牌與地區出現的 Coupon，常需要先領取。',
-    frequency: '每天檢查',
-    icon: CreditCard,
-  },
-  {
-    title: '合作品牌官方網站',
-    description: 'Lawson、7-Eleven、FamilyMart、餐廳與零售品牌公布的聯名活動。',
-    frequency: '每 6 小時',
-    icon: Store,
-  },
-  {
-    title: '地方政府回饋活動',
-    description: '部分市區町村會推出 PayPay 地區消費回饋，通常有指定區域。',
-    frequency: '每天檢查',
-    icon: MapPin,
-  },
-  {
-    title: '使用者回報',
-    description: '補充 App 內限定、門市海報、區域限定或尚未收錄的活動。',
-    frequency: '即時收集',
-    icon: MessageSquarePlus,
-  },
-]
-
-const reportForm = ref({
-  brand: '',
-  merchant: '',
-  title: '',
-  reward: '',
-  period: '',
-  sourceUrl: '',
-  note: '',
-  email: '',
-})
-
-const filteredDeals = computed(() => {
-  return todayDeals.value
-    .filter(isDealActive)
-    .filter((deal) => {
-      if (selectedCategory.value === 'all') {
-        return true
-      }
-
-      if (selectedCategory.value === 'paypay') {
-        return deal.platform === 'PayPay'
-      }
-
-      return deal.category === selectedCategory.value
-    })
-})
-
-const featuredDeal = computed(() =>
-  todayDeals.value.find(deal => deal.featured),
+const supabase = createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY,
 )
 
-const submitReport = () => {
-  if (
-    !reportForm.value.brand ||
-    !reportForm.value.title ||
-    !reportForm.value.note
-  ) {
-    alert('請填寫品牌、活動標題與活動內容。')
-    return
-  }
+// ======================================================
+// 基本設定
+// ======================================================
 
-  console.log('discount report', {
-    ...reportForm.value,
-    createdAt: new Date().toISOString(),
-  })
+const PRIMARY_PRICE = 8000
+const SECONDARY_PRICE = 9000
 
-  submitted.value = true
+const flights = ref([])
+const isLoading = ref(false)
+const errorMessage = ref('')
 
-  reportForm.value = {
-    brand: '',
-    merchant: '',
-    title: '',
-    reward: '',
-    period: '',
-    sourceUrl: '',
-    note: '',
-    email: '',
-  }
+const theme = ref(
+  localStorage.getItem('flight_theme') ||
+  'dark',
+)
+
+// 目前只開放 7 天與 16 天
+const stayDayOptions = [
+  {
+    value: 7,
+    label: '7 天',
+  },
+  {
+    value: 16,
+    label: '16 天',
+  },
+]
+
+const selectedStayDays = ref(16)
+
+const monthOptions = [
+  {
+    value: '2026-09',
+    label: '9 月',
+    fullLabel: '2026 年 9 月',
+  },
+]
+
+const getInitialMonth = () => {
+  const params = new URLSearchParams(
+    window.location.search,
+  )
+
+  const month = params.get('month')
+
+  const exists = monthOptions.some(
+    (item) => item.value === month,
+  )
+
+  return exists
+    ? month
+    : '2026-09'
 }
 
-const changePage = page => {
-  activePage.value = page
-  window.scrollTo({
-    top: 0,
-    behavior: 'smooth',
-  })
-}
+const selectedMonth = ref(
+  getInitialMonth(),
+)
 
-const payPayReferralCode = '02-CKFVTZH'
-const referralCopied = ref(false)
+// ======================================================
+// Computed
+// ======================================================
 
-const copyReferralCode = async () => {
-  try {
-    await navigator.clipboard.writeText(payPayReferralCode)
-    referralCopied.value = true
+const currentMonthOption = computed(() => {
+  return (
+    monthOptions.find(
+      (item) =>
+        item.value ===
+        selectedMonth.value,
+    ) || monthOptions[0]
+  )
+})
 
-    window.setTimeout(() => {
-      referralCopied.value = false
-    }, 2000)
-  } catch (error) {
-    console.error('Failed to copy referral code:', error)
-    alert(`PayPay 好友介紹碼：${payPayReferralCode}`)
-  }
-}
+// 目前先顯示所有符合條件的航班。
+// 不依照日期組合去重。
+const sortedFlights = computed(() => {
+  return [...flights.value].sort(
+    (a, b) =>
+      Number(a.price) -
+      Number(b.price),
+  )
+})
 
+const bestFlight = computed(() => {
+  return sortedFlights.value[0] || null
+})
 
-const isDealActive = (deal) => {
-  const end = getDealEndDate(deal)
+const priceValues = computed(() => {
+  return sortedFlights.value
+    .map((flight) =>
+      Number(flight.price),
+    )
+    .filter(Number.isFinite)
+})
 
-  if (!end) {
-    return true
-  }
-
-  return Date.now() <= end.getTime()
-}
-
-const getDealEndDate = (deal) => {
-  if (!deal.endDate) {
+const lowestPrice = computed(() => {
+  if (!priceValues.value.length) {
     return null
   }
 
-  return new Date(`${deal.endDate}T23:59:59+09:00`)
+  return Math.min(
+    ...priceValues.value,
+  )
+})
+
+const highestPrice = computed(() => {
+  if (!priceValues.value.length) {
+    return null
+  }
+
+  return Math.max(
+    ...priceValues.value,
+  )
+})
+
+const latestCapturedAt = computed(() => {
+  const values = flights.value
+    .map(
+      (flight) =>
+        flight.captured_at,
+    )
+    .filter(Boolean)
+    .sort()
+
+  return values.at(-1) || null
+})
+
+// ======================================================
+// Theme
+// ======================================================
+
+const applyTheme = () => {
+  document.documentElement.dataset.theme =
+    theme.value
 }
 
+const toggleTheme = () => {
+  theme.value =
+    theme.value === 'dark'
+      ? 'light'
+      : 'dark'
 
-const getDeadlineText = (deal) => {
-  if (!deal.endDate) {
-    return deal.deadlineText || '截止日期待確認'
-  }
-
-  const now = new Date()
-  const end = new Date(`${deal.endDate}T23:59:59+09:00`)
-
-  const todayStart = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate(),
+  localStorage.setItem(
+    'flight_theme',
+    theme.value,
   )
 
-  const endStart = new Date(
-    end.getFullYear(),
-    end.getMonth(),
-    end.getDate(),
-  )
-
-  const diffDays = Math.ceil(
-    (endStart.getTime() - todayStart.getTime()) / 86400000,
-  )
-
-  if (diffDays < 0) {
-    return '活動已結束'
-  }
-
-  if (diffDays === 0) {
-    return '今天截止'
-  }
-
-  if (diffDays === 1) {
-    return '明天截止'
-  }
-
-  if (diffDays <= 7) {
-    return `剩 ${diffDays} 天`
-  }
-
-
-
-
-  return `${end.getMonth() + 1}/${end.getDate()} 截止`
+  applyTheme()
 }
 
-const getCategoryCover = (category) => {
-  return categoryCovers[category] || '/img/covers/default.webp'
+// ======================================================
+// 日期與格式
+// ======================================================
+
+const getMonthRange = (
+  monthValue,
+) => {
+  const [year, month] = monthValue
+    .split('-')
+    .map(Number)
+
+  const start = new Date(
+    Date.UTC(
+      year,
+      month - 1,
+      1,
+    ),
+  )
+
+  const end = new Date(
+    Date.UTC(
+      year,
+      month,
+      1,
+    ),
+  )
+
+  return {
+    start: start
+      .toISOString()
+      .slice(0, 10),
+
+    end: end
+      .toISOString()
+      .slice(0, 10),
+  }
 }
 
-const getRemainingDays = (deal) => {
-  if (!deal.endDate) {
-    return Infinity
+const formatPrice = (value) => {
+  if (
+    value === null ||
+    value === undefined
+  ) {
+    return '價格待確認'
   }
 
-  const now = new Date()
-  const end = new Date(`${deal.endDate}T23:59:59+09:00`)
+  return `NT$${Number(
+    value,
+  ).toLocaleString('zh-TW')}`
+}
 
-  const todayStart = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate(),
+const formatDate = (value) => {
+  if (!value) {
+    return '日期待確認'
+  }
+
+  const date = new Date(
+    `${value}T00:00:00+08:00`,
   )
 
-  const endStart = new Date(
-    end.getFullYear(),
-    end.getMonth(),
-    end.getDate(),
+  return new Intl.DateTimeFormat(
+    'zh-TW',
+    {
+      month: 'numeric',
+      day: 'numeric',
+      weekday: 'short',
+    },
+  ).format(date)
+}
+
+const formatDateTime = (value) => {
+  if (!value) {
+    return '更新時間待確認'
+  }
+
+  return new Intl.DateTimeFormat(
+    'zh-TW',
+    {
+      month: 'numeric',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    },
+  ).format(new Date(value))
+}
+
+const calculateStayDays = (
+  departureDate,
+  returnDate,
+) => {
+  if (
+    !departureDate ||
+    !returnDate
+  ) {
+    return null
+  }
+
+  const departure = new Date(
+    `${departureDate}T00:00:00Z`,
   )
 
-  return Math.ceil(
-    (endStart.getTime() - todayStart.getTime()) / 86400000,
+  const returning = new Date(
+    `${returnDate}T00:00:00Z`,
+  )
+
+  return Math.round(
+    (
+      returning.getTime() -
+      departure.getTime()
+    ) / 86400000,
   )
 }
+
+const getAirportName = (
+  airport,
+) => {
+  const airportNames = {
+    TPE: '桃園機場',
+    TSA: '松山機場',
+    NRT: '成田機場',
+    HND: '羽田機場',
+    TYO: '東京',
+  }
+
+  return (
+    airportNames[airport] ||
+    airport
+  )
+}
+
+const getPriceLevel = (
+  price,
+) => {
+  const value = Number(price)
+
+  if (value <= PRIMARY_PRICE) {
+    return {
+      className: 'primary',
+      text: '超值得',
+      icon: '🔥',
+    }
+  }
+
+  if (value <= SECONDARY_PRICE) {
+    return {
+      className: 'secondary',
+      text: '值得注意',
+      icon: '✨',
+    }
+  }
+
+  return {
+    className: '',
+    text: '目前候選',
+    icon: '',
+  }
+}
+
+const normalizeFlightSummary = (
+  summary,
+) => {
+  return (
+    summary ||
+    '沒有提供詳細航班內容。'
+  )
+    .replace(/\r?\n/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+// ======================================================
+// Trip.com 聯盟網址
+// ======================================================
+
+const TRIP_AFFILIATE = {
+  Allianceid: '9296239',
+  SID: '324469629',
+  trip_sub1: '',
+  trip_sub3: 'D18700075',
+}
+
+const getAffiliateUrl = (
+  flight,
+) => {
+  if (!flight?.search_url) {
+    return '#'
+  }
+
+  const url = new URL(
+    flight.search_url,
+  )
+
+  Object.entries(
+    TRIP_AFFILIATE,
+  ).forEach(([key, value]) => {
+    // 空值不加入網址
+    if (!value) {
+      return
+    }
+
+    url.searchParams.set(
+      key,
+      value,
+    )
+  })
+
+  return url.toString()
+}
+
+// ======================================================
+// Supabase
+// ======================================================
+
+const fetchFlights = async () => {
+  isLoading.value = true
+  errorMessage.value = ''
+
+  try {
+    const {
+      start,
+      end,
+    } = getMonthRange(
+      selectedMonth.value,
+    )
+
+    const {
+      data,
+      error,
+    } = await supabase
+      .from('flight_prices')
+      .select(`
+        id,
+        collection_run_id,
+        platform,
+        origin,
+        destination_city,
+        destination,
+        departure_date,
+        return_date,
+        stay_days,
+        adults,
+        currency,
+        price,
+        airline,
+        direct,
+        baggage,
+        flight_summary,
+        search_url,
+        status,
+        captured_at
+      `)
+      .eq('status', 'success')
+      .not('price', 'is', null)
+      .eq(
+        'stay_days',
+        selectedStayDays.value,
+      )
+      .gte(
+        'departure_date',
+        start,
+      )
+      .lt(
+        'departure_date',
+        end,
+      )
+      .order('price', {
+        ascending: true,
+      })
+
+    if (error) {
+      throw error
+    }
+
+    flights.value = data || []
+
+    console.log(
+      `目前選擇：${selectedStayDays.value} 天`,
+    )
+
+    console.log(
+      `Supabase 回傳：${flights.value.length} 筆`,
+    )
+
+    console.table(
+      flights.value.map(
+        (flight) => ({
+          id: flight.id,
+          stay_days:
+            flight.stay_days,
+          departure:
+            flight.departure_date,
+          return:
+            flight.return_date,
+          airline:
+            flight.airline,
+          price:
+            flight.price,
+        }),
+      ),
+    )
+  } catch (error) {
+    console.error(error)
+
+    errorMessage.value =
+      error?.message ||
+      '航班資料讀取失敗'
+
+    flights.value = []
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// ======================================================
+// 操作
+// ======================================================
+
+const changeMonth = async (
+  month,
+) => {
+  if (
+    selectedMonth.value === month
+  ) {
+    return
+  }
+
+  selectedMonth.value = month
+
+  const url = new URL(
+    window.location.href,
+  )
+
+  url.searchParams.set(
+    'month',
+    month,
+  )
+
+  window.history.replaceState(
+    {},
+    '',
+    url,
+  )
+
+  await fetchFlights()
+}
+
+const changeStayDays = async (
+  stayDays,
+) => {
+  if (
+    selectedStayDays.value ===
+    stayDays
+  ) {
+    return
+  }
+
+  selectedStayDays.value =
+    stayDays
+
+  await fetchFlights()
+}
+
+// ======================================================
+// Lifecycle
+// ======================================================
+
+onMounted(() => {
+  applyTheme()
+  fetchFlights()
+})
+
 </script>
 
 <template>
   <main class="page">
     <nav class="nav">
       <a class="brand" href="#top">
-        <div class="logo">
-          <WalletCards :size="21" />
-        </div>
+        <span class="brand-icon">
+          <Plane :size="21" />
+        </span>
 
         <div>
           <strong>SaveFlow</strong>
-          <span>日本生活省錢助手</span>
+          <p>東京便宜機票月曆</p>
         </div>
       </a>
 
       <div class="nav-actions">
-        <a href="#featured">
-          今日精選
-        </a>
+        <div class="month-nav">
+          <button v-for="month in monthOptions" :key="month.value" type="button" :class="{
+            active:
+              selectedMonth ===
+              month.value,
+          }" @click="
+            changeMonth(month.value)
+            ">
+            {{ month.label }}
+          </button>
+        </div>
 
-        <a href="#today-deals">
-          優惠分類
-        </a>
+        <button type="button" class="icon-button" :title="theme === 'dark'
+          ? '切換淺色模式'
+          : '切換深色模式'
+          " @click="toggleTheme">
+          <Sun v-if="theme === 'dark'" :size="18" />
 
-        <a href="#paypay-beginner">
-          PayPay 新手
-        </a>
+          <Moon v-else :size="18" />
+        </button>
 
-        <a class="report-nav-btn" href="#today-deals">
-          查看今日優惠
-          <ChevronRight :size="16" />
-        </a>
+        <button type="button" class="refresh-button" :disabled="isLoading" @click="fetchFlights">
+          <RefreshCw :size="16" :class="{
+            spinning: isLoading,
+          }" />
+
+          {{
+            isLoading
+              ? '更新中'
+              : '重新整理'
+          }}
+        </button>
       </div>
     </nav>
 
-    <!-- 今日首頁 -->
-    <template v-if="activePage === 'today'">
-      <section class="hero">
-        <div class="date-badge">
-          <CalendarDays :size="15" />
-          {{ formatToday }}
+    <section id="top" class="hero">
+      <div class="panel hero-main">
+        <div class="eyebrow">
+          <CalendarDays :size="14" />
+
+          {{
+            currentMonthOption.fullLabel
+          }}
+
+          FLIGHT WATCH
         </div>
 
         <h1>
-          每天打開一次，<br />
-          就知道今天哪裡最值得省錢。
+          不用一直換日期，<br />
+          直接看哪一段最便宜。
         </h1>
 
-        <p>
-          整理 PayPay 回饋、便利商店優惠、Amazon JP 特價，
-          以及日本生活中值得注意的期間限定活動。
+        <p class="hero-description">
+          SaveFlow 自動比較不同出發日期與停留天數，
+          整理桃園飛東京目前值得注意的來回機票。
+          點擊航班即可前往 Trip.com 查看最新價格。
         </p>
 
-        <div class="hero-actions">
-          <a href="#today-deals" class="primary-link">
-            查看今日優惠
-            <ChevronRight :size="17" />
-          </a>
-
-          <!-- <button @click="changePage('report')">
-            我發現新的優惠
-          </button> -->
+        <div class="hero-tags">
+          <span>桃園 TPE 出發</span>
+          <span>成田 NRT／羽田 HND</span>
+          <span>約 14～18 天</span>
+          <span>直飛優先</span>
         </div>
-      </section>
+      </div>
 
-      <section id="featured" v-if="featuredDeal" class="featured-section">
-        <div class="featured-label">
-          <Sparkles :size="15" />
-          今日最值得注意
-        </div>
-
-        <article class="featured-card">
-          <div class="featured-content">
-            <div class="merchant-line">
-              <span class="merchant-avatar">
-                {{ featuredDeal.merchant.slice(0, 1) }}
-              </span>
-
-              <div>
-                <strong>{{ featuredDeal.merchant }}</strong>
-                <span>{{ featuredDeal.sourceType }}</span>
-              </div>
-            </div>
-
-            <h2>{{ featuredDeal.title }}</h2>
-            <p>{{ featuredDeal.summary }}</p>
-
-            <div class="featured-meta">
-              <span>
-                <Clock3 :size="15" />
-                {{ featuredDeal.deadline }}
-              </span>
-
-              <span>
-                <MapPin :size="15" />
-                {{ featuredDeal.location }}
-              </span>
-            </div>
-          </div>
-
-          <div class="reward-panel">
-            <span>{{ featuredDeal.rewardLabel }}</span>
-            <strong>{{ featuredDeal.rewardText }}</strong>
-
-            <!-- <a :href="featuredDeal.sourceUrl">
-              查看活動
-              <ExternalLink :size="15" />
-            </a> -->
-          </div>
-        </article>
-      </section>
-
-      <section id="today-deals" class="deals-section">
-        <div class="section-head">
+      <aside class="panel best-panel">
+        <template v-if="bestFlight">
           <div>
-            <span class="eyebrow">TODAY</span>
-            <h2>今天可以省什麼？</h2>
-          </div>
+            <span class="best-label">
+              <Sparkles :size="15" />
+              目前最划算
+            </span>
 
-          <div class="updated-time">
-            <Clock3 :size="15" />
-            最後更新：今天 09:00
-          </div>
-        </div>
+            <strong class="best-price">
+              {{
+                formatPrice(
+                  bestFlight.price,
+                )
+              }}
+            </strong>
 
-        <div class="category-tabs">
-          <button v-for="category in categories" :key="category.id"
-            :class="{ active: selectedCategory === category.id }" @click="selectedCategory = category.id">
-            {{ category.label }}
-          </button>
-        </div>
-
-        <div class="deal-grid">
-          <article v-for="deal in filteredDeals" :key="deal.id" class="deal-card">
-            <!-- 圖片區 -->
-            <div class="deal-cover">
-              <img :src="deal.image || getCategoryCover(deal.category)" :alt="`${deal.merchant || deal.brand} 優惠情境圖`"
-                loading="lazy" />
-
-              <div class="deal-cover-overlay"></div>
-
-              <div class="deal-cover-top">
-                <span class="deal-category">
-                  {{ getCategoryLabel(deal.category) }}
-                </span>
-
-                <span v-if="deal.featured" class="featured-tag">
-                  <Sparkles :size="13" />
-                  編輯推薦
-                </span>
-              </div>
-
-              <div class="cover-reward">
-                <span>{{ deal.rewardLabel || '優惠回饋' }}</span>
-                <strong>{{ deal.rewardText }}</strong>
-              </div>
+            <div class="best-airline">
+              {{
+                bestFlight.airline ||
+                '航空公司待確認'
+              }}
             </div>
 
-            <!-- 卡片內容 -->
-            <div class="deal-card-body">
-              <div class="deal-card-head">
-                <div class="merchant-avatar">
-                  {{ (deal.merchant || deal.brand || '?').slice(0, 1) }}
-                </div>
-
-                <div class="merchant-info">
-                  <div class="merchant-name">
-                    <strong>
-                      {{ deal.merchant || deal.brand }}
-                    </strong>
-
-                    <CheckCircle2 v-if="deal.verified" class="verified" :size="15" aria-label="已確認活動來源" />
-                  </div>
-
-                  <span>{{ deal.sourceType }}</span>
-                </div>
-              </div>
-
-              <div class="deal-content">
-                <h3>{{ deal.title }}</h3>
-
-                <p>{{ deal.summary }}</p>
-              </div>
-
-              <!-- 使用條件標籤 -->
-              <div v-if="deal.mustClaim || deal.minimumSpend > 0" class="deal-tags">
-                <span v-if="deal.mustClaim">
-                  需先領券
-                </span>
-
-                <span v-if="deal.minimumSpend > 0">
-                  滿 ¥{{ deal.minimumSpend.toLocaleString() }}
-                </span>
-
-                <span v-if="deal.usageLimit === 1">
-                  限用 1 次
-                </span>
-              </div>
-
-              <div class="deal-bottom">
-                <span class="deal-location">
-                  <MapPin :size="14" />
-                  {{ deal.location || '適用範圍待確認' }}
-                </span>
-
-                <span class="deal-deadline" :class="{
-                  urgent: getRemainingDays(deal) <= 3,
-                }">
-                  <Clock3 :size="14" />
-                  {{ getDeadlineText(deal) }}
-                </span>
-              </div>
-            </div>
-          </article>
-        </div>
-
-        <div v-if="!filteredDeals.length" class="empty-state">
-          今天暫時沒有這個分類的優惠。
-        </div>
-      </section>
-
-      <section class="daily-note">
-        <Info :size="19" />
-
-        <div>
-          <strong>首頁只顯示今天仍有效的活動</strong>
-          <p>
-            已結束的活動會移到「過往活動」，方便確認品牌過去曾推出哪些優惠。
-          </p>
-        </div>
-
-        <!-- <button @click="changePage('history')">
-          查看過往活動
-          <ChevronRight :size="16" />
-        </button> -->
-      </section>
-      <section id="paypay-beginner" class="paypay-referral">
-        <div class="referral-main">
-          <div class="referral-badge">
-            <CreditCard :size="15" />
-            PAYPAY BEGINNER
-          </div>
-
-          <h2>還沒有 PayPay？</h2>
-
-          <p class="referral-description">
-            使用 SaveFlow 提供的 PayPay 好友介紹碼註冊，
-            並完成 PayPay 官方指定條件後，
-            即可獲得 <strong>300 點 PayPay Points</strong>。
-          </p>
-
-
-          <div class="referral-code-box">
-            <div class="referral-code-content">
-              <span>SaveFlow 好友介紹碼</span>
-              <strong>{{ payPayReferralCode }}</strong>
-            </div>
-
-            <button type="button" class="copy-code-btn" @click="copyReferralCode">
-              <CheckCircle2 v-if="referralCopied" :size="17" />
-              <Copy v-else :size="17" />
-
-              {{ referralCopied ? '已複製' : '複製介紹碼' }}
-            </button>
-          </div>
-
-          <div class="referral-notice">
-            <Info :size="16" />
-
-            <p>
-              此為 SaveFlow 的好友介紹碼，SaveFlow 可能因此獲得 PayPay Point。
-              實際適用對象、完成條件、回饋點數與活動期間，請以 PayPay App
-              顯示及官方公告為準。
+            <p class="best-route">
+              {{
+                formatDate(
+                  bestFlight.departure_date,
+                )
+              }}
+              →
+              {{
+                formatDate(
+                  bestFlight.return_date,
+                )
+              }}
             </p>
 
-          </div>
+            <div class="best-meta">
+              <span class="best-stay-days">
+                <CalendarDays :size="14" />
 
-          <div class="referral-notice">
-            <Info :size="16" />
+                停留
+                {{
+                  bestFlight.stay_days ??
+                  calculateStayDays(
+                    bestFlight.departure_date,
+                    bestFlight.return_date,
+                )
+                }}
+                天
+              </span>
 
-            <p> 官方條件：
-              註冊後 60 天內輸入介紹碼，並使用 PayPay 累積支付滿 1,000 日圓以上，
-              完成後你與推薦人皆可各獲得 300 點 PayPay Points。</p>
-          </div>
-
-        </div>
-
-        <div class="referral-side">
-          <div class="referral-point">
-            <span>目前好友介紹特典</span>
-            <strong>每人 300 pt</strong>
-            <small>依 PayPay App 目前顯示</small>
-          </div>
-
-          <div class="referral-steps">
-            <div>
-              <span>01</span>
-              <p>註冊 PayPay</p>
+              <span v-if="
+                bestFlight.direct !== null &&
+                bestFlight.direct !== undefined
+              " class="best-direct">
+                {{
+                  bestFlight.direct
+                    ? '直飛'
+                    : '轉機'
+                }}
+              </span>
             </div>
 
-            <div>
-              <span>02</span>
-              <p>輸入介紹碼</p>
-            </div>
-
-            <div>
-              <span>03</span>
-              <p>完成指定條件</p>
-            </div>
+            <p class="best-airports">
+              {{
+                bestFlight.origin ||
+                'TPE'
+              }}
+              →
+              {{
+                bestFlight.destination ||
+                'TYO'
+              }}
+            </p>
           </div>
-        </div>
 
-      </section>
-      <section class="referral-guide">
-
-        <h3>如何領取 300 點？</h3>
-
-        <div class="guide-grid">
-
-          <article class="guide-card">
-            <!-- <span>STEP 1</span> -->
-
-            <img src="/img/paypay-step1.webp">
-
-            <h4>輸入好友介紹碼</h4>
-
-            <p>
-              點擊好友邀請連結後，
-              在頁面輸入介紹碼。
-            </p>
-          </article>
-
-          <article class="guide-card">
-
-            <!-- <span>STEP 2</span> -->
-
-            <img src="/img/paypay-step2.webp">
-
-            <h4>完成 PayPay 設定</h4>
-
-            <p>
-              依照畫面完成設定，
-              準備開始使用 PayPay。
-            </p>
-
-          </article>
-
-          <article class="guide-card">
-
-            <!-- <span>STEP 3</span> -->
-
-            <img src="/img/paypay-step3.webp">
-
-            <h4>完成指定條件</h4>
-
-            <p>
-              60 天內累積支付滿
-              1,000 日圓即可獲得
-              300 點。
-            </p>
-
-          </article>
-
-        </div>
-
-        <small>
-          圖片來源：PayPay 官方活動頁面，實際活動內容請以官方公告為準。
-        </small>
-        <div class="paypay-download-actions">
-          <button type="button" class="copy-code-btn" @click="copyReferralCode">
-            <CheckCircle2 v-if="referralCopied" :size="17" />
-            <Copy v-else :size="17" />
-
-            {{ referralCopied ? '介紹碼已複製' : '先複製介紹碼' }}
-          </button>
-
-          <a class="download-paypay-btn" href="https://s.paypay.ne.jp/Sj5MRR" target="_blank" rel="noopener noreferrer">
-            下載 PayPay App
-            <ExternalLink :size="17" />
+          <a class="best-button" :href="getAffiliateUrl(
+            bestFlight,
+          )
+            " target="_blank" rel="noopener noreferrer sponsored">
+            查看目前價格
+            <ExternalLink :size="16" />
           </a>
+        </template>
+
+        <div v-else-if="isLoading" class="best-empty">
+          正在尋找最低價格……
         </div>
 
-        <p class="download-hint">
-          下載並註冊後，請在新會員註冊畫面或「好友介紹特典」頁面輸入介紹碼
-          <strong>{{ payPayReferralCode }}</strong>。
-        </p>
-      </section>
-    </template>
-
-    <!-- 過往活動 -->
-    <template v-else-if="activePage === 'history'">
-      <section class="inner-hero">
-        <div class="page-icon">
-          <History :size="22" />
+        <div v-else class="best-empty">
+          這個月份目前還沒有資料。
         </div>
+      </aside>
+    </section>
 
-        <span class="eyebrow">HISTORY</span>
-        <h1>過往優惠紀錄</h1>
-        <p>
-          查看品牌過去推出過的回饋與折扣，了解活動頻率與常見優惠幅度。
-        </p>
-      </section>
-
-      <section class="history-section">
-        <div class="search-box">
-          <Search :size="17" />
-          <input placeholder="搜尋品牌或活動名稱" />
-        </div>
-
-        <div class="history-list">
-          <article v-for="item in historyDeals" :key="item.id" class="history-item">
-            <div class="history-brand">
-              {{ item.merchant.slice(0, 1) }}
-            </div>
-
-            <div class="history-content">
-              <div>
-                <strong>{{ item.merchant }}</strong>
-                <span>活動已結束</span>
-              </div>
-
-              <h3>{{ item.title }}</h3>
-              <p>{{ item.period }}</p>
-            </div>
-
-            <div class="history-reward">
-              <strong>{{ item.rewardText }}</strong>
-              <span>{{ item.reports }} 人回報</span>
-            </div>
-          </article>
-        </div>
-      </section>
-    </template>
-
-    <!-- PayPay 資料來源 -->
-    <template v-else-if="activePage === 'sources'">
-      <section class="inner-hero">
-        <div class="page-icon">
-          <CreditCard :size="22" />
-        </div>
-
-        <span class="eyebrow">PAYPAY SOURCES</span>
-        <h1>PayPay 優惠可以從哪裡更新？</h1>
-        <p>
-          SaveFlow 可以整合官方活動、App 優惠券、合作品牌與使用者回報，
-          讓不同來源的優惠集中在同一個地方。
-        </p>
-      </section>
-
-      <section class="source-grid">
-        <article v-for="source in payPaySources" :key="source.title" class="source-card">
-          <div class="source-icon">
-            <component :is="source.icon" :size="20" />
-          </div>
-
-          <h3>{{ source.title }}</h3>
-          <p>{{ source.description }}</p>
-
-          <span>
-            <Clock3 :size="14" />
-            {{ source.frequency }}
+    <section class="content-section">
+      <div class="section-head">
+        <div>
+          <span class="section-eyebrow">
+            MONTHLY DEALS
           </span>
-        </article>
-      </section>
 
-      <section class="source-flow">
-        <div>
-          <span>01</span>
-          <strong>收集活動</strong>
-          <p>取得官方與品牌活動資訊。</p>
-        </div>
+          <h2>
+            {{
+              currentMonthOption.fullLabel
+            }}
+            便宜機票
+          </h2>
 
-        <ChevronRight :size="20" />
-
-        <div>
-          <span>02</span>
-          <strong>整理條件</strong>
-          <p>解析品牌、期間、回饋與適用地區。</p>
-        </div>
-
-        <ChevronRight :size="20" />
-
-        <div>
-          <span>03</span>
-          <strong>今日顯示</strong>
-          <p>首頁只顯示今天仍有效的優惠。</p>
-        </div>
-
-        <ChevronRight :size="20" />
-
-        <div>
-          <span>04</span>
-          <strong>個人化通知</strong>
-          <p>未來依照收藏品牌推送活動。</p>
-        </div>
-      </section>
-    </template>
-
-    <!-- 使用者回報 -->
-    <template v-else>
-      <section class="inner-hero">
-        <div class="page-icon">
-          <MessageSquarePlus :size="22" />
-        </div>
-
-        <span class="eyebrow">COMMUNITY REPORT</span>
-        <h1>回報你最近看到的優惠</h1>
-        <p>
-          有些優惠只會出現在 PayPay App、門市海報或特定地區，
-          你的回報可以幫助其他人不要錯過。
-        </p>
-      </section>
-
-      <section class="report-section">
-        <div v-if="!submitted" class="report-card">
-          <div class="report-grid">
-            <label>
-              品牌名稱 *
-              <input v-model="reportForm.brand" placeholder="例如 PayPay、Lawson" />
-            </label>
-
-            <label>
-              適用店家
-              <input v-model="reportForm.merchant" placeholder="例如 7-Eleven" />
-            </label>
-
-            <label class="full">
-              活動標題 *
-              <input v-model="reportForm.title" placeholder="例如 PayPay Coupon 最高回饋 10%" />
-            </label>
-
-            <label>
-              優惠內容
-              <input v-model="reportForm.reward" placeholder="例如 10%、¥100 OFF" />
-            </label>
-
-            <label>
-              活動期間
-              <input v-model="reportForm.period" placeholder="例如 7/13－7/20" />
-            </label>
-
-            <label class="full">
-              活動網址
-              <input v-model="reportForm.sourceUrl" type="url" placeholder="https://..." />
-            </label>
-
-            <label class="full">
-              活動說明 *
-              <textarea v-model="reportForm.note" rows="5" placeholder="請說明在哪裡看到、使用條件、是否需要先領券等。" />
-            </label>
-
-            <label class="full">
-              聯絡 Email
-              <input v-model="reportForm.email" type="email" placeholder="選填，僅用於確認活動內容" />
-            </label>
-          </div>
-
-          <button class="submit-btn" @click="submitReport">
-            <Send :size="17" />
-            送出優惠回報
-          </button>
-        </div>
-
-        <div v-else class="report-success">
-          <div>
-            <CheckCircle2 :size="28" />
-          </div>
-
-          <h2>感謝你的回報</h2>
           <p>
-            活動確認後會顯示在今日優惠或過往活動紀錄。
+            依目前抓到的來回價格由低到高排列。
           </p>
+        </div>
 
-          <button @click="submitted = false">
-            再回報一筆優惠
+        <span class="last-updated">
+          最後更新：
+          {{
+            formatDateTime(
+              latestCapturedAt,
+            )
+          }}
+        </span>
+      </div>
+      <div class="stay-filter-section">
+        <div class="stay-filter-label">
+          <CalendarDays :size="16" />
+          <span>停留時間</span>
+        </div>
+
+        <div class="stay-filter">
+          <button v-for="option in stayDayOptions" :key="option.value" type="button" class="stay-filter-button" :class="{
+            active:
+              selectedStayDays === option.value,
+          }" @click="
+            changeStayDays(
+              option.value,
+            )
+            ">
+            {{ option.label }}
           </button>
         </div>
-      </section>
-    </template>
+      </div>
+      <div class="summary-grid">
+        <article class="summary-card">
+          <span>候選航班</span>
+
+          <strong>
+            {{ sortedFlights.length }}
+            <small>筆</small>
+          </strong>
+        </article>
+
+        <article class="summary-card">
+          <span>最低價格</span>
+
+          <strong>
+            {{
+              formatPrice(
+                lowestPrice,
+              )
+            }}
+          </strong>
+        </article>
+
+        <article class="summary-card">
+          <span>價格區間</span>
+
+          <strong class="range-value">
+            {{
+              lowestPrice !== null
+                ? `${formatPrice(
+                  lowestPrice,
+                )}～${formatPrice(
+                  highestPrice,
+                )}`
+                : '—'
+            }}
+          </strong>
+        </article>
+      </div>
+
+      <div v-if="isLoading" class="panel state-card">
+        <RefreshCw :size="28" class="spinning" />
+
+        <strong>
+          正在讀取航班資料
+        </strong>
+
+        <p>
+          正在從 SaveFlow 資料庫取得最新結果。
+        </p>
+      </div>
+
+      <div v-else-if="errorMessage" class="panel state-card error-state">
+        <strong>
+          航班資料讀取失敗
+        </strong>
+
+        <p>
+          {{ errorMessage }}
+        </p>
+      </div>
+
+      <div v-else-if="
+        !sortedFlights.length
+      " class="panel state-card">
+        <Plane :size="29" />
+
+        <strong>
+          這個月份還沒有資料
+        </strong>
+
+        <p>
+          Collector 更新後，
+          這裡就會顯示最新航班結果。
+        </p>
+      </div>
+
+      <div v-else class="flight-grid">
+        <article v-for="(
+flight,
+  index
+          ) in sortedFlights" :key="flight.id" class="flight-card" :class="{
+            best: index === 0,
+          }">
+          <span class="rank">
+            {{
+              index === 0
+                ? 'BEST'
+                : `#${index + 1}`
+            }}
+          </span>
+
+          <div class="flight-card-main">
+            <div class="airline-info">
+              <div class="flight-badges">
+                <span class="badge" :class="getPriceLevel(
+                  flight.price,
+                ).className
+                  ">
+                  {{
+                    getPriceLevel(
+                      flight.price,
+                    ).icon
+                  }}
+
+                  {{
+                    getPriceLevel(
+                      flight.price,
+                    ).text
+                  }}
+                </span>
+
+                {{
+                  flight.direct
+                    ? '直飛'
+                    : '轉機'
+                }}
+
+                <span class="badge">
+                  {{
+                    calculateStayDays(
+                      flight.departure_date,
+                      flight.return_date,
+                    )
+                  }}
+                  天
+                </span>
+              </div>
+
+              <h3>
+                {{
+                  flight.airline ||
+                  '航空公司待確認'
+                }}
+              </h3>
+
+              <p>
+                {{
+                  formatDate(
+                    flight.departure_date,
+                  )
+                }}
+                →
+                {{
+                  formatDate(
+                    flight.return_date,
+                  )
+                }}
+              </p>
+            </div>
+
+            <div class="route">
+              <div class="airport">
+                <strong>
+                  {{
+                    flight.origin ||
+                    'TPE'
+                  }}
+                </strong>
+
+                <span>
+                  {{
+                    getAirportName(
+                      flight.origin ||
+                      'TPE',
+                    )
+                  }}
+                </span>
+              </div>
+
+              <div class="route-line">
+                <Plane :size="18" />
+              </div>
+
+              <div class="airport">
+                <strong>
+                  {{
+                    flight.destination ||
+                    'TYO'
+                  }}
+                </strong>
+
+                <span>
+                  {{
+                    getAirportName(
+                      flight.destination ||
+                      'TYO',
+                    )
+                  }}
+                </span>
+              </div>
+            </div>
+
+            <div class="price-box">
+              <small>來回價格</small>
+
+              <strong>
+                {{
+                  formatPrice(
+                    flight.price,
+                  )
+                }}
+              </strong>
+
+              <a :href="getAffiliateUrl(
+                flight,
+              )
+                " target="_blank" rel="noopener noreferrer sponsored">
+                Trip.com 查看
+                <ExternalLink :size="14" />
+              </a>
+            </div>
+          </div>
+          <div class="flight-summary-wrapper">
+            <div class="flight-summary-title">
+              航班資訊
+            </div>
+
+            <p class="flight-summary">
+              {{
+                normalizeFlightSummary(
+                  flight.flight_summary,
+                )
+              }}
+            </p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="affiliate-note">
+      <CheckCircle2 :size="18" />
+
+      <p>
+        本頁部分連結為聯盟連結。透過連結完成預訂時，
+        SaveFlow 可能獲得佣金，但不會增加你的付款金額。
+        航班價格、行李與付款條件請以 Trip.com
+        最終頁面為準。
+      </p>
+    </section>
 
     <footer class="footer">
       <div>
         <strong>SaveFlow</strong>
-        <span>每天打開一次，就知道今天哪裡最值得省錢。</span>
+        <span>
+          不用一直換日期，
+          直接找到目前最划算的旅行方式。
+        </span>
       </div>
 
-      <p>優惠內容請以品牌與支付平台官方公告為準。</p>
+      <p>
+        Flight prices may change at any time.
+      </p>
     </footer>
   </main>
 </template>
 
-<style scoped>
+<style scss>
+:root {
+  color-scheme: dark;
+
+  --bg: #070b14;
+  --bg-2: #0f172a;
+  --panel: rgba(19, 28, 47, 0.82);
+  --panel-solid: #121b2e;
+  --panel-soft: rgba(255, 255, 255, 0.055);
+
+  --text: #f8fafc;
+  --muted: #94a3b8;
+
+  --line: rgba(255, 255, 255, 0.11);
+  --grid: rgba(255, 255, 255, 0.028);
+
+  --primary: #ff8a00;
+  --primary-2: #ffb000;
+  --primary-soft: rgba(255, 138, 0, 0.14);
+
+  --blue: #4ea1ff;
+  --blue-soft: rgba(78, 161, 255, 0.14);
+
+  --green: #5eead4;
+  --green-soft: rgba(94, 234, 212, 0.13);
+
+  --yellow: #facc15;
+  --yellow-soft: rgba(250, 204, 21, 0.13);
+
+  --danger: #fb7185;
+
+  --shadow:
+    0 28px 90px rgba(0, 0, 0, 0.38);
+}
+
+[data-theme='light'] {
+  color-scheme: light;
+
+  --bg: #eef4ff;
+  --bg-2: #ffffff;
+  --panel: rgba(255, 255, 255, 0.8);
+  --panel-solid: #ffffff;
+  --panel-soft: rgba(15, 23, 42, 0.045);
+
+  --text: #101828;
+  --muted: #667085;
+
+  --line: rgba(15, 23, 42, 0.12);
+  --grid: rgba(15, 23, 42, 0.04);
+
+  --primary: #ff8300;
+  --primary-2: #ffb000;
+  --primary-soft: rgba(255, 131, 0, 0.12);
+
+  --blue: #1677ff;
+  --blue-soft: rgba(22, 119, 255, 0.1);
+
+  --green: #078f83;
+  --green-soft: rgba(7, 143, 131, 0.11);
+
+  --yellow: #b77900;
+  --yellow-soft: rgba(183, 121, 0, 0.1);
+
+  --danger: #d92d20;
+
+  --shadow:
+    0 24px 70px rgba(36, 76, 140, 0.16);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -1539,1072 +1114,924 @@ html {
   scroll-behavior: smooth;
 }
 
-#featured,
-#today-deals,
-#paypay-beginner {
-  scroll-margin-top: 32px;
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+
+  color: var(--text);
+
+  font-family:
+    ui-rounded,
+    'SF Pro Rounded',
+    'Noto Sans TC',
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+
+  background:
+    radial-gradient(circle at 15% 10%,
+      color-mix(in srgb,
+        var(--blue) 22%,
+        transparent),
+      transparent 30%),
+    radial-gradient(circle at 85% 8%,
+      color-mix(in srgb,
+        var(--primary) 18%,
+        transparent),
+      transparent 28%),
+    linear-gradient(135deg,
+      var(--bg),
+      var(--bg-2));
+
+  transition:
+    color 0.25s ease,
+    background 0.25s ease;
 }
 
-button,
-input,
-textarea {
-  font: inherit;
+body::before {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+
+  content: '';
+
+  background-image:
+    linear-gradient(var(--grid) 1px,
+      transparent 1px),
+    linear-gradient(90deg,
+      var(--grid) 1px,
+      transparent 1px);
+
+  background-size: 44px 44px;
+
+  mask-image:
+    linear-gradient(to bottom,
+      rgba(0, 0, 0, 0.9),
+      transparent 90%);
+
+  pointer-events: none;
 }
 
 button,
 a {
-  -webkit-tap-highlight-color: transparent;
+  font: inherit;
 }
 
 button {
-  cursor: pointer;
-}
-
-.page {
-  min-height: 100vh;
-  padding: 26px;
-  color: #172033;
-  background:
-    radial-gradient(circle at 10% 0%, rgba(53, 111, 255, 0.13), transparent 30%),
-    radial-gradient(circle at 95% 15%, rgba(91, 33, 182, 0.07), transparent 27%),
-    #f7f9fc;
-  font-family:
-    Inter,
-    "Noto Sans TC",
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
-}
-
-.nav {
-  max-width: 1160px;
-  margin: 0 auto 72px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 24px;
-}
-
-.brand {
-  padding: 0;
-  border: 0;
-  background: transparent;
-  display: flex;
-  align-items: center;
-  gap: 12px;
   color: inherit;
-  text-align: left;
+}
+
+a {
+  color: inherit;
   text-decoration: none;
 }
 
-.logo {
-  width: 43px;
-  height: 43px;
+.page {
+  width: min(1180px,
+      calc(100% - 32px));
+
+  margin: 0 auto;
+  padding-bottom: 60px;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+
+  padding: 24px 0;
+}
+
+.brand {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand p {
+  margin-bottom: 0;
+  margin-top: 1px;
+  font-size: 13px;
+}
+
+.brand-icon {
+  /* display: grid; */
+  width: 44px;
+  height: 44px;
+  /* place-items: center;
+   */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border: 1px solid color-mix(in srgb,
+      var(--primary) 38%,
+      transparent);
+
   border-radius: 15px;
-  display: grid;
-  place-items: center;
-  color: white;
-  background: #172033;
-  box-shadow: 0 14px 32px rgba(23, 32, 51, 0.22);
+
+  color: #111827;
+
+  background:
+    linear-gradient(135deg,
+      var(--primary),
+      var(--primary-2));
+
+  box-shadow:
+    0 12px 34px color-mix(in srgb,
+      var(--primary) 20%,
+      transparent);
+}
+
+.best-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.best-stay-days,
+.best-direct {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  background: var(--surface-secondary);
 }
 
 .brand strong,
 .brand span {
-  display: block;
+  /* display: block; */
 }
 
 .brand strong {
   font-size: 18px;
-  letter-spacing: -0.04em;
 }
 
 .brand span {
-  margin-top: 2px;
-  color: #778197;
+  margin-top: 3px;
+  color: var(--muted);
   font-size: 12px;
 }
 
 .nav-actions {
   display: flex;
+  min-width: 0;
   align-items: center;
-  gap: 5px;
+  gap: 9px;
 }
 
-.nav-actions a {
-  height: 40px;
-  padding: 0 13px;
-  border: 0;
-  border-radius: 12px;
-  background: transparent;
-  color: #697386;
-  font-size: 14px;
-  font-weight: 700;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.nav-actions a:hover {
-  color: #172033;
-  background: white;
-}
-
-.nav-actions .report-nav-btn {
-  margin-left: 6px;
-  padding: 0 15px;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  color: white;
-  background: #356fff;
-}
-
-.nav-actions .report-nav-btn:hover {
-  color: white;
-  background: #285fe8;
-}
-
-.hero {
-  max-width: 900px;
-  margin: 0 auto 48px;
-  text-align: center;
-}
-
-.date-badge,
-.featured-label,
-.eyebrow {
-  color: #356fff;
-  font-weight: 900;
-}
-
-.date-badge {
-  width: fit-content;
-  margin: 0 auto 20px;
-  padding: 8px 13px;
-  border: 1px solid #dbe6ff;
-  border-radius: 999px;
-  background: #edf3ff;
+.month-nav {
   display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 13px;
-}
-
-.hero h1,
-.inner-hero h1 {
-  margin: 0;
-  letter-spacing: -0.075em;
-}
-
-.hero h1 {
-  font-size: clamp(36px, 5vw, 60px);
-  line-height: 1.5;
-}
-
-.hero p,
-.inner-hero p {
-  color: #697386;
-  line-height: 1.8;
-}
-
-.hero p {
-  max-width: 650px;
-  margin: 22px auto 0;
-  font-size: 18px;
-}
-
-.hero-actions {
-  margin-top: 28px;
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-}
-
-.hero-actions a,
-.hero-actions button {
-  height: 47px;
-  padding: 0 19px;
-  border-radius: 15px;
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  gap: 7px;
-  text-decoration: none;
-  font-weight: 850;
-}
-
-.primary-link {
-  color: white;
-  background: #172033;
-  box-shadow: 0 14px 35px rgba(23, 32, 51, 0.2);
-}
-
-.hero-actions button {
-  border: 1px solid #dfe5ef;
-  color: #172033;
-  background: white;
-}
-
-.featured-section,
-.deals-section,
-.daily-note,
-.inner-hero,
-.history-section,
-.source-grid,
-.source-flow,
-.report-section,
-.footer {
-  max-width: 1160px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.featured-section {
-  margin-bottom: 26px;
-}
-
-.featured-label {
-  margin-bottom: 10px;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 13px;
-}
-
-.featured-card {
-  padding: 29px;
-  border-radius: 30px;
-  display: grid;
-  grid-template-columns: 1fr 260px;
-  gap: 30px;
-  color: white;
-  background:
-    radial-gradient(circle at 90% 10%, rgba(255, 255, 255, 0.15), transparent 30%),
-    linear-gradient(135deg, #172033, #315fd2);
-  box-shadow: 0 28px 70px rgba(42, 79, 164, 0.22);
-}
-
-.merchant-line,
-.deal-card-head {
-  display: flex;
-  align-items: center;
-}
-
-.merchant-line {
-  gap: 11px;
-}
-
-.merchant-line strong,
-.merchant-line span {
-  display: block;
-}
-
-.merchant-line span {
-  margin-top: 3px;
-  color: #c9d8ff;
-  font-size: 12px;
-}
-
-.merchant-avatar,
-.history-brand {
-  flex-shrink: 0;
-  display: grid;
-  place-items: center;
-  font-weight: 950;
-}
-
-.merchant-avatar {
-  width: 41px;
-  height: 41px;
-  border-radius: 14px;
-  color: #356fff;
-  background: white;
-}
-
-.featured-content h2 {
-  margin: 24px 0 9px;
-  font-size: 31px;
-  letter-spacing: -0.05em;
-  color: #dce6ff;
-}
-
-.featured-content>p {
-  max-width: 650px;
-  margin: 0;
-  color: #dce6ff;
-  line-height: 1.75;
-}
-
-.featured-meta {
-  margin-top: 22px;
-  display: flex;
-  gap: 17px;
-  color: #dce6ff;
-  font-size: 13px;
-}
-
-.featured-meta span,
-.updated-time,
-.source-card>span {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.reward-panel {
-  padding: 24px;
-  border-radius: 23px;
-  align-self: stretch;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.11);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-}
-
-.reward-panel>span {
-  color: #c9d8ff;
-  font-size: 13px;
-}
-
-.reward-panel strong {
-  margin-top: 5px;
-  font-size: 37px;
-  letter-spacing: -0.06em;
-}
-
-.reward-panel a {
-  height: 42px;
-  margin-top: 20px;
-  border-radius: 13px;
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  gap: 7px;
-  color: #172033;
-  background: white;
-  text-decoration: none;
-  font-weight: 850;
-}
-
-.deals-section {
-  padding-top: 24px;
-}
-
-.section-head {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 20px;
-}
-
-.eyebrow {
-  font-size: 12px;
-  letter-spacing: 0.12em;
-}
-
-.section-head h2 {
-  margin: 7px 0 0;
-  font-size: 34px;
-  letter-spacing: -0.055em;
-}
-
-.updated-time {
-  color: #8790a2;
-  font-size: 13px;
-}
-
-.category-tabs {
-  margin-top: 21px;
-  display: flex;
-  gap: 7px;
   overflow-x: auto;
+  gap: 5px;
+
+  padding: 4px;
+
+  border: 1px solid var(--line);
+  border-radius: 999px;
+
+  background: var(--panel-soft);
+
   scrollbar-width: none;
 }
 
-.category-tabs button {
-  height: 38px;
-  padding: 0 15px;
-  border: 1px solid #dfe5ef;
-  border-radius: 999px;
+.month-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.month-nav button {
   flex-shrink: 0;
-  color: #697386;
-  background: white;
-  font-weight: 750;
-}
+  padding: 8px 11px;
 
-.category-tabs button.active {
-  border-color: #172033;
-  color: white;
-  background: #172033;
-}
-
-.deal-grid {
-  margin-top: 17px;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 17px;
-}
-
-.deal-card,
-.history-item,
-.source-card,
-.report-card,
-.report-success,
-.daily-note,
-.source-flow {
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid #e3e8f0;
-  box-shadow: 0 18px 54px rgba(23, 32, 51, 0.055);
-}
-
-.deal-card {
-  min-width: 0;
-  padding: 22px;
-  border-radius: 24px;
-}
-
-.deal-card-head {
-  gap: 10px;
-}
-
-.merchant-info {
-  min-width: 0;
-  flex: 1;
-}
-
-.merchant-info strong,
-.merchant-info span {
-  display: block;
-}
-
-.merchant-info span {
-  margin-top: 2px;
-  color: #8790a2;
-  font-size: 12px;
-}
-
-.verified {
-  color: #1ca56c;
-}
-
-.reward {
-  margin-top: 23px;
-}
-
-.reward strong,
-.reward span {
-  display: block;
-}
-
-.reward strong {
-  color: #356fff;
-  font-size: 28px;
-  letter-spacing: -0.055em;
-}
-
-.reward span {
-  margin-top: 3px;
-  color: #8790a2;
-  font-size: 12px;
-}
-
-.deal-card h3 {
-  margin: 19px 0 7px;
-  font-size: 18px;
-  letter-spacing: -0.035em;
-}
-
-.deal-card>p {
-  min-height: 48px;
-  margin: 0;
-  color: #697386;
-  line-height: 1.65;
-  font-size: 14px;
-}
-
-.deal-bottom {
-  margin-top: 22px;
-  padding-top: 17px;
-  border-top: 1px solid #edf0f5;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 14px;
-}
-
-.deal-bottom span,
-.deal-bottom small {
-  display: block;
-}
-
-.deal-bottom span {
-  color: #e45b55;
-  font-size: 13px;
-  font-weight: 850;
-}
-
-.deal-bottom small {
-  margin-top: 3px;
-  color: #9aa2b1;
-}
-
-.deal-bottom a {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  color: #356fff;
-  text-decoration: none;
-  font-weight: 800;
-  font-size: 13px;
-}
-
-.empty-state {
-  padding: 40px;
-  text-align: center;
-  color: #8790a2;
-}
-
-.daily-note {
-  margin-top: 22px;
-  padding: 20px 22px;
-  border-radius: 22px;
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 14px;
-}
-
-.daily-note>svg {
-  color: #356fff;
-}
-
-.daily-note strong {
-  display: block;
-}
-
-.daily-note p {
-  margin: 4px 0 0;
-  color: #778197;
-  font-size: 13px;
-}
-
-.daily-note button {
-  padding: 0;
   border: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  color: #356fff;
-  background: transparent;
-  font-weight: 800;
-}
-
-.paypay-referral {
-  max-width: 1160px;
-  margin: 22px auto 0;
-  padding: 28px;
-  border: 1px solid #e3e8f0;
-  border-radius: 28px;
-  display: grid;
-  grid-template-columns: 1fr 310px;
-  gap: 30px;
-  background:
-    radial-gradient(circle at 92% 8%,
-      rgba(34, 197, 194, 0.2),
-      transparent 33%),
-    radial-gradient(circle at 76% 100%,
-      rgba(255, 208, 61, 0.23),
-      transparent 35%),
-    rgba(255, 255, 255, 0.94);
-  box-shadow: 0 20px 60px rgba(23, 32, 51, 0.07);
-}
-
-.referral-main {
-  min-width: 0;
-}
-
-.referral-badge {
-  width: fit-content;
-  padding: 7px 11px;
   border-radius: 999px;
+
+  color: var(--muted);
+  background: transparent;
+
+  font-size: 13px;
+  font-weight: 800;
+
+  cursor: pointer;
+}
+
+.month-nav button:hover {
+  color: var(--text);
+}
+
+.month-nav button.active {
+  color: #111827;
+
+  background:
+    linear-gradient(135deg,
+      var(--primary),
+      var(--primary-2));
+}
+
+.icon-button,
+.refresh-button {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+
+  min-height: 42px;
+  padding: 9px 12px;
+
+  border: 1px solid var(--line);
+  border-radius: 999px;
+
+  color: var(--text);
+  background: var(--panel-soft);
+
+  cursor: pointer;
+}
+
+.icon-button {
+  width: 42px;
+  padding: 0;
+}
+
+.icon-button:hover,
+.refresh-button:hover {
+  border-color:
+    color-mix(in srgb,
+      var(--blue) 42%,
+      var(--line));
+
+  background: var(--blue-soft);
+}
+
+.refresh-button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1.3fr) minmax(290px, 0.7fr);
+
+  gap: 20px;
+
+  margin-top: 22px;
+}
+
+.panel {
+  border: 1px solid var(--line);
+  border-radius: 28px;
+
+  background:
+    linear-gradient(180deg,
+      var(--panel),
+      var(--panel-soft));
+
+  box-shadow: var(--shadow);
+
+  backdrop-filter: blur(18px);
+}
+
+.hero-main {
+  position: relative;
+  overflow: hidden;
+  padding: 40px;
+}
+
+.hero-main::after {
+  position: absolute;
+  right: 22px;
+  bottom: 6px;
+
+  content: 'TPE → TYO';
+
+  color:
+    color-mix(in srgb,
+      var(--text) 5%,
+      transparent);
+
+  font-size:
+    clamp(46px, 7vw, 92px);
+
+  font-weight: 1000;
+  letter-spacing: -0.08em;
+  white-space: nowrap;
+}
+
+.eyebrow,
+.section-eyebrow {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  color: #168f91;
-  background: #e6fafa;
+  gap: 7px;
+
+  color: var(--blue);
+
   font-size: 12px;
   font-weight: 900;
   letter-spacing: 0.08em;
 }
 
-.referral-main h2 {
-  margin: 14px 0 8px;
-  font-size: 31px;
-  letter-spacing: -0.055em;
+.eyebrow {
+  padding: 8px 12px;
+
+  border: 1px solid color-mix(in srgb,
+      var(--blue) 30%,
+      transparent);
+
+  border-radius: 999px;
+
+  background: var(--blue-soft);
 }
 
-.referral-description {
-  max-width: 650px;
+.hero h1 {
+  position: relative;
+  z-index: 1;
+
+  max-width: 760px;
+  margin: 22px 0 16px;
+
+  font-size:
+    clamp(38px, 5.5vw, 60px);
+
+  line-height: 1.3;
+  letter-spacing: -0.065em;
+}
+
+.hero-description {
+  position: relative;
+  z-index: 1;
+
+  max-width: 680px;
   margin: 0;
-  color: #697386;
-  line-height: 1.75;
+
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.9;
 }
 
-.referral-code-box {
-  max-width: 650px;
-  margin-top: 21px;
-  padding: 16px;
-  border: 1px solid #dce2ec;
-  border-radius: 19px;
+.hero-tags {
+  position: relative;
+  z-index: 1;
+
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  background: #f8fafc;
+  flex-wrap: wrap;
+  gap: 9px;
+
+  margin-top: 24px;
 }
 
-.referral-code-content {
+.hero-tags span {
+  padding: 8px 11px;
+
+  border: 1px solid var(--line);
+  border-radius: 999px;
+
+  color: var(--muted);
+  background: var(--panel-soft);
+
+  font-size: 13px;
+}
+
+.best-panel {
+  display: flex;
+  min-height: 330px;
+  padding: 28px;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.best-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.best-price {
+  display: block;
+  margin: 18px 0 14px;
+
+  color: var(--green);
+
+  font-size: clamp(42px, 5vw, 62px);
+  font-weight: 1000;
+  line-height: 0.95;
+  letter-spacing: -0.07em;
+}
+
+.best-airline {
+  margin-top: 6px;
+
+  font-size: 19px;
+  font-weight: 900;
+  line-height: 1.4;
+}
+
+.best-route {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+
+  margin: 14px 0 0;
+
+  color: var(--muted);
+  line-height: 1.7;
+  font-weight: 850;
+}
+
+.best-route span {
+  /* margin-left: 0; */
+  /* color: var(--blue); */
+  font-weight: 850;
+}
+
+.best-airports {
+  margin: 10px 0 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+/* .best-route span {
+  margin-left: 7px;
+
+  color: var(--blue);
+  font-weight: 850;
+} */
+
+.best-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  margin-top: 22px;
+  padding: 13px 16px;
+
+  border: 1px solid color-mix(in srgb,
+      var(--primary) 42%,
+      transparent);
+
+  border-radius: 16px;
+
+  color: #111827;
+
+  background:
+    linear-gradient(135deg,
+      var(--primary),
+      var(--primary-2));
+
+  font-weight: 950;
+}
+
+.best-button:hover {
+  filter: brightness(1.06);
+}
+
+.best-empty {
+  display: grid;
+  min-height: 100%;
+  place-items: center;
+
+  color: var(--muted);
+  text-align: center;
+}
+
+.content-section {
+  margin-top: 42px;
+}
+
+.section-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 20px;
+
+  margin-bottom: 17px;
+}
+
+.section-head h2 {
+  margin: 7px 0 0;
+
+  font-size: 30px;
+  letter-spacing: -0.045em;
+}
+
+.section-head p {
+  margin: 7px 0 0;
+  color: var(--muted);
+}
+
+.last-updated {
+  color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+
+  margin-bottom: 18px;
+}
+
+.summary-card {
+  padding: 18px;
+
+  border: 1px solid var(--line);
+  border-radius: 21px;
+
+  background: var(--panel-soft);
+}
+
+.summary-card span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.summary-card strong {
+  display: block;
+  margin-top: 8px;
+
+  font-size: 25px;
+  letter-spacing: -0.04em;
+}
+
+.summary-card small {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.summary-card .range-value {
+  font-size: 20px;
+}
+
+.flight-grid {
+  display: grid;
+  gap: 15px;
+}
+
+.flight-card {
+  position: relative;
+  overflow: hidden;
+
+  padding: 22px;
+
+  border: 1px solid var(--line);
+  border-radius: 25px;
+
+  background:
+    linear-gradient(145deg,
+      var(--panel-soft),
+      color-mix(in srgb,
+        var(--panel-soft) 48%,
+        transparent));
+
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    background 0.18s ease;
+}
+
+.flight-card:hover {
+  transform: translateY(-3px);
+
+  border-color:
+    color-mix(in srgb,
+      var(--blue) 40%,
+      var(--line));
+
+  background: var(--blue-soft);
+}
+
+.flight-card.best {
+  border-color:
+    color-mix(in srgb,
+      var(--green) 42%,
+      var(--line));
+
+  background:
+    linear-gradient(145deg,
+      var(--green-soft),
+      var(--panel-soft));
+}
+
+.rank {
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  display: grid;
+  min-width: 48px;
+  height: 34px;
+  place-items: center;
+
+  border-radius: 0 0 14px 0;
+
+  color: var(--muted);
+  background: var(--panel-soft);
+
+  font-size: 11px;
+  font-weight: 950;
+}
+
+.flight-card.best .rank {
+  color: #052e2b;
+  background: var(--green);
+}
+
+.flight-card-main {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1.1fr) minmax(250px, 1.4fr) auto;
+
+  gap: 24px;
+  align-items: center;
+
+  padding-left: 26px;
+}
+
+.airline-info {
   min-width: 0;
 }
 
-.referral-code-content span,
-.referral-code-content strong {
-  display: block;
+.flight-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+
+  margin-bottom: 10px;
 }
 
-.referral-code-content span {
-  color: #8790a2;
-  font-size: 12px;
-}
-
-.referral-code-content strong {
-  margin-top: 5px;
-  font-size: 24px;
-  letter-spacing: 0.055em;
-  overflow-wrap: anywhere;
-}
-
-.copy-code-btn {
-  height: 43px;
-  padding: 0 15px;
-  border: 0;
-  border-radius: 13px;
-  flex-shrink: 0;
+.badge {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 7px;
-  color: white;
-  background: #356fff;
-  font-weight: 850;
-  cursor: pointer;
-  transition:
-    transform 0.18s ease,
-    box-shadow 0.18s ease;
-}
 
-.copy-code-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 10px 24px rgba(53, 111, 255, 0.24);
-}
+  padding: 5px 8px;
 
-.referral-notice {
-  max-width: 650px;
-  margin-top: 14px;
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  color: #8790a2;
-}
+  border: 1px solid var(--line);
+  border-radius: 999px;
 
-.referral-notice svg {
-  margin-top: 2px;
-  flex-shrink: 0;
-}
+  color: var(--muted);
+  background: var(--panel-soft);
 
-.referral-notice p {
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.65;
-}
-
-.referral-side {
-  padding: 22px;
-  border: 1px solid rgba(255, 255, 255, 0.64);
-  border-radius: 23px;
-  background:
-    linear-gradient(145deg,
-      rgba(24, 178, 181, 0.96),
-      rgba(38, 145, 218, 0.96));
-  color: white;
-}
-
-.referral-point span,
-.referral-point strong,
-.referral-point small {
-  display: block;
-}
-
-.referral-point span {
-  color: rgba(255, 255, 255, 0.78);
-  font-size: 12px;
-}
-
-.referral-point strong {
-  margin-top: 7px;
-  font-size: 31px;
-  letter-spacing: -0.055em;
-}
-
-.referral-point small {
-  margin-top: 5px;
-  color: rgba(255, 255, 255, 0.72);
-}
-
-.referral-steps {
-  margin-top: 25px;
-  display: grid;
-  gap: 10px;
-}
-
-.referral-steps>div {
-  padding: 11px 12px;
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  background: rgba(255, 255, 255, 0.12);
-}
-
-.referral-steps span {
-  width: 27px;
-  height: 27px;
-  border-radius: 9px;
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  color: #167f91;
-  background: white;
   font-size: 11px;
-  font-weight: 950;
+  font-weight: 850;
 }
 
-.referral-steps p {
+.badge.primary {
+  border-color:
+    color-mix(in srgb,
+      var(--green) 38%,
+      transparent);
+
+  color: var(--green);
+  background: var(--green-soft);
+}
+
+.badge.secondary {
+  border-color:
+    color-mix(in srgb,
+      var(--yellow) 38%,
+      transparent);
+
+  color: var(--yellow);
+  background: var(--yellow-soft);
+}
+
+.airline-info h3 {
+  overflow: hidden;
   margin: 0;
-  font-size: 13px;
-  font-weight: 800;
+
+  font-size: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.inner-hero {
-  margin-bottom: 30px;
+.airline-info p {
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.route {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 15px;
+  align-items: center;
+}
+
+.airport {
   text-align: center;
 }
 
-.page-icon {
-  width: 51px;
-  height: 51px;
-  margin: 0 auto 17px;
-  border-radius: 18px;
-  display: grid;
-  place-items: center;
-  color: #356fff;
-  background: #eaf1ff;
+.airport strong,
+.airport span {
+  display: block;
 }
 
-.inner-hero h1 {
-  margin-top: 8px;
-  font-size: clamp(39px, 6vw, 63px);
+.airport strong {
+  font-size: 24px;
 }
 
-.inner-hero p {
-  max-width: 650px;
-  margin: 16px auto 0;
-}
-
-.history-section {
-  max-width: 880px;
-}
-
-.search-box {
-  height: 49px;
-  padding: 0 15px;
-  border: 1px solid #dfe5ef;
-  border-radius: 16px;
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  background: white;
-}
-
-.search-box svg {
-  color: #98a1b2;
-}
-
-.search-box input {
-  width: 100%;
-  border: 0;
-  outline: 0;
-  color: #172033;
-  background: transparent;
-}
-
-.history-list {
-  margin-top: 15px;
-  display: grid;
-  gap: 12px;
-}
-
-.history-item {
-  padding: 19px;
-  border-radius: 21px;
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 15px;
-}
-
-.history-brand {
-  width: 46px;
-  height: 46px;
-  border-radius: 15px;
-  color: white;
-  background: #356fff;
-}
-
-.history-content>div {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.history-content>div span {
-  padding: 4px 7px;
-  border-radius: 999px;
-  color: #8790a2;
-  background: #f1f3f6;
-  font-size: 11px;
-  font-weight: 800;
-}
-
-.history-content h3 {
-  margin: 7px 0 3px;
-}
-
-.history-content p,
-.history-reward span {
-  margin: 0;
-  color: #8790a2;
+.airport span {
+  margin-top: 5px;
+  color: var(--muted);
   font-size: 12px;
 }
 
-.history-reward {
+.route-line {
+  display: flex;
+  min-width: 110px;
+  align-items: center;
+  gap: 8px;
+
+  color: var(--blue);
+}
+
+.route-line::before,
+.route-line::after {
+  height: 1px;
+  flex: 1;
+
+  content: '';
+  background: var(--line);
+}
+
+.price-box {
+  min-width: 155px;
   text-align: right;
 }
 
-.history-reward strong,
-.history-reward span {
+.price-box small {
   display: block;
+  color: var(--muted);
 }
 
-.history-reward strong {
-  color: #356fff;
-  font-size: 19px;
-}
-
-.history-reward span {
+.price-box strong {
+  display: block;
   margin-top: 5px;
+
+  color: var(--green);
+  font-size: 28px;
+  letter-spacing: -0.04em;
 }
 
-.source-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-}
-
-.source-card {
-  padding: 22px;
-  border-radius: 23px;
-}
-
-.source-icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 14px;
-  display: grid;
-  place-items: center;
-  color: #356fff;
-  background: #edf3ff;
-}
-
-.source-card h3 {
-  margin: 17px 0 7px;
-}
-
-.source-card p {
-  min-height: 66px;
-  margin: 0;
-  color: #697386;
-  line-height: 1.65;
-  font-size: 14px;
-}
-
-.source-card>span {
-  margin-top: 18px;
-  color: #8790a2;
-  font-size: 12px;
-}
-
-.source-flow {
-  margin-top: 19px;
-  padding: 23px;
-  border-radius: 24px;
-  display: grid;
-  grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr;
+.price-box a {
+  display: inline-flex;
   align-items: center;
-  gap: 13px;
-}
+  gap: 5px;
 
-.source-flow>div>span {
-  color: #356fff;
+  margin-top: 10px;
+  padding: 8px 11px;
+
+  border: 1px solid var(--line);
+  border-radius: 11px;
+
+  background: var(--panel-soft);
+
   font-size: 12px;
-  font-weight: 950;
-}
-
-.source-flow strong,
-.source-flow p {
-  display: block;
-}
-
-.source-flow strong {
-  margin-top: 5px;
-}
-
-.source-flow p {
-  margin: 4px 0 0;
-  color: #8790a2;
-  font-size: 12px;
-}
-
-.source-flow>svg {
-  color: #bcc4d1;
-}
-
-.report-section {
-  max-width: 800px;
-}
-
-.report-card {
-  padding: 26px;
-  border-radius: 27px;
-}
-
-.report-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 15px;
-}
-
-.report-grid label {
-  display: grid;
-  gap: 7px;
-  color: #4d586d;
-  font-size: 13px;
   font-weight: 850;
 }
 
-.report-grid .full {
-  grid-column: 1 / -1;
+.price-box a:hover {
+  border-color:
+    color-mix(in srgb,
+      var(--primary) 42%,
+      var(--line));
+
+  background: var(--primary-soft);
 }
 
-.report-grid input,
-.report-grid textarea {
+.summary-toggle {
+  display: flex;
   width: 100%;
-  border: 1px solid #d7deea;
-  border-radius: 14px;
-  outline: 0;
-  color: #172033;
-  background: white;
-}
-
-.report-grid input {
-  height: 47px;
-  padding: 0 13px;
-}
-
-.report-grid textarea {
-  padding: 13px;
-  resize: vertical;
-}
-
-.report-grid input:focus,
-.report-grid textarea:focus {
-  border-color: #356fff;
-  box-shadow: 0 0 0 4px rgba(53, 111, 255, 0.11);
-}
-
-.submit-btn {
-  width: 100%;
-  height: 50px;
-  margin-top: 18px;
-  border: 0;
-  border-radius: 15px;
-  display: inline-flex;
-  justify-content: center;
   align-items: center;
-  gap: 8px;
-  color: white;
-  background: #356fff;
-  font-weight: 900;
+  justify-content: space-between;
+
+  margin-top: 18px;
+  padding: 15px 0 0;
+
+  border: 0;
+  border-top: 1px solid var(--line);
+
+  color: var(--muted);
+  background: transparent;
+
+  font-size: 13px;
+  font-weight: 850;
+
+  cursor: pointer;
 }
 
-.report-success {
-  padding: 52px 28px;
-  border-radius: 27px;
+.summary-toggle svg {
+  transition: transform 0.2s ease;
+}
+
+.summary-toggle svg.rotated {
+  transform: rotate(180deg);
+}
+
+.flight-summary {
+  overflow-x: auto;
+  margin-top: 14px;
+  padding: 15px;
+
+  border: 1px solid var(--line);
+  border-radius: 16px;
+
+  color: var(--muted);
+  background:
+    color-mix(in srgb,
+      var(--bg) 30%,
+      transparent);
+
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+
+  font-size: 12px;
+  line-height: 1.7;
+
+  white-space: nowrap;
+}
+
+.state-card {
+  display: grid;
+  min-height: 260px;
+  padding: 40px;
+  place-items: center;
+
+  color: var(--muted);
   text-align: center;
 }
 
-.report-success>div {
-  width: 59px;
-  height: 59px;
-  margin: 0 auto 15px;
-  border-radius: 19px;
-  display: grid;
-  place-items: center;
-  color: #14855a;
-  background: #def7ea;
+.state-card strong {
+  color: var(--text);
+  font-size: 21px;
 }
 
-.report-success h2 {
+.state-card p {
   margin: 0;
 }
 
-.report-success p {
-  color: #697386;
+.error-state strong {
+  color: var(--danger);
 }
 
-.report-success button {
-  height: 42px;
-  padding: 0 16px;
-  border: 1px solid #dfe5ef;
-  border-radius: 13px;
-  color: #172033;
-  background: white;
-  font-weight: 800;
+.affiliate-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+
+  margin-top: 26px;
+  padding: 18px;
+
+  border: 1px solid var(--line);
+  border-radius: 20px;
+
+  color: var(--muted);
+  background: var(--panel-soft);
+
+  font-size: 13px;
+  line-height: 1.75;
+}
+
+.affiliate-note svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+  color: var(--green);
+}
+
+.affiliate-note p {
+  margin: 0;
 }
 
 .footer {
-  margin-top: 70px;
-  padding: 25px 0 8px;
-  border-top: 1px solid #e2e7ef;
   display: flex;
+  align-items: end;
   justify-content: space-between;
   gap: 20px;
-  color: #8790a2;
+
+  padding: 46px 0 0;
+
+  color: var(--muted);
   font-size: 12px;
 }
 
@@ -2614,752 +2041,173 @@ button {
 }
 
 .footer strong {
-  color: #172033;
-  font-size: 15px;
+  color: var(--text);
+  font-size: 16px;
 }
 
 .footer span {
-  margin-top: 4px;
+  margin-top: 5px;
 }
 
 .footer p {
   margin: 0;
 }
 
-.referral-guide {
-  max-width: 1160px;
-  margin: 22px auto 0;
-  padding: 28px;
-  border: 1px solid #e3e8f0;
-  border-radius: 28px;
-  background: rgba(255, 255, 255, 0.94);
-  box-shadow: 0 20px 60px rgba(23, 32, 51, 0.07);
+.spinning {
+  animation: spin 0.8s linear infinite;
 }
 
-.referral-guide h3 {
-  margin: 0;
-  color: #172033;
-  font-size: 28px;
-  letter-spacing: -0.045em;
-}
-
-.guide-grid {
-  margin-top: 24px;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
-}
-
-.guide-card {
-  padding: 18px;
-  border: 1px solid #e3e8f0;
-  border-radius: 21px;
-  background: #ffffff;
-  overflow: hidden;
-  transition:
-    transform 0.18s ease,
-    box-shadow 0.18s ease;
-}
-
-.guide-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 16px 34px rgba(23, 32, 51, 0.1);
-}
-
-.guide-card>span {
-  width: fit-content;
-  padding: 6px 10px;
-  border-radius: 999px;
-  display: inline-flex;
-  color: #ff7a22;
-  background: #fff3e9;
-  font-size: 12px;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-}
-
-.guide-card img {
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  margin-top: 15px;
-  border-radius: 15px;
-  display: block;
-  object-fit: contain;
-  background: #f8fafc;
-}
-
-.guide-card h4 {
-  margin: 17px 0 7px;
-  color: #172033;
-  font-size: 18px;
-  letter-spacing: -0.025em;
-}
-
-.guide-card p {
-  margin: 0;
-  color: #697386;
-  font-size: 14px;
-  line-height: 1.7;
-}
-
-.referral-guide>small {
-  margin-top: 18px;
-  display: block;
-  color: #8790a2;
-  font-size: 12px;
-  line-height: 1.65;
-}
-
-.paypay-download-actions {
-  max-width: 650px;
-  margin-top: 14px;
+.stay-filter {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  justify-self: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 22px 0;
 }
 
-.download-paypay-btn {
-  min-height: 43px;
-  padding: 0 17px;
-  border: 1px solid #356fff;
-  border-radius: 13px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  color: #356fff;
-  background: rgba(53, 111, 255, 0.06);
-  font-size: 14px;
-  font-weight: 850;
-  text-decoration: none;
+.stay-filter-button {
+  padding: 10px 18px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--text-secondary);
+  font: inherit;
+  font-weight: 700;
   cursor: pointer;
   transition:
-    color 0.18s ease,
-    background 0.18s ease,
-    transform 0.18s ease,
-    box-shadow 0.18s ease;
-}
-
-.download-paypay-btn:hover {
-  color: #ffffff;
-  background: #356fff;
-  transform: translateY(-1px);
-  box-shadow: 0 10px 24px rgba(53, 111, 255, 0.22);
-}
-
-.download-paypay-btn:active {
-  transform: translateY(0);
-}
-
-.download-hint {
-  /* max-width: 650px; */
-  margin: 11px 0 0;
-  color: #697386;
-  font-size: 12px;
-  line-height: 1.65;
-  text-align: center;
-}
-
-.download-hint strong {
-  color: #172033;
-  font-weight: 900;
-  letter-spacing: 0.035em;
-}
-
-.deal-card {
-  min-width: 0;
-  border: 1px solid #e3e8f0;
-  border-radius: 24px;
-  overflow: hidden;
-  background: #ffffff;
-  box-shadow: 0 16px 44px rgba(23, 32, 51, 0.07);
-  transition:
     transform 0.2s ease,
-    box-shadow 0.2s ease;
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    color 0.2s ease;
 }
 
-.deal-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 24px 54px rgba(23, 32, 51, 0.12);
+.stay-filter-button:hover {
+  transform: translateY(-1px);
 }
 
-.deal-cover {
-  position: relative;
-  aspect-ratio: 16 / 9;
-  overflow: hidden;
-  background: #eef2f7;
-}
-
-.deal-cover img {
-  width: 100%;
-  height: 100%;
-  display: block;
-  object-fit: cover;
-  transition: transform 0.4s ease;
-}
-
-.deal-card:hover .deal-cover img {
-  transform: scale(1.035);
-}
-
-.deal-cover-overlay {
-  position: absolute;
-  inset: 0;
+.stay-filter-button.active {
   background:
-    linear-gradient(
-      to bottom,
-      rgba(15, 23, 42, 0.1) 0%,
-      transparent 42%,
-      rgba(15, 23, 42, 0.66) 100%
-    );
+    linear-gradient(135deg,
+      var(--primary),
+      var(--primary-2));
+  border-color: var(--text-primary);
+  color: var(--background);
 }
 
-.deal-cover-top {
-  position: absolute;
-  top: 14px;
-  left: 14px;
-  right: 14px;
+.stay-filter-section {
+  margin: 24px 0;
+}
+
+.stay-filter-label {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.stay-filter {
+  display: flex;
+  flex-wrap: wrap;
   gap: 10px;
 }
 
-.deal-category,
-.featured-tag {
-  min-height: 28px;
-  padding: 0 10px;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11px;
-  font-weight: 850;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-.deal-category {
-  color: #172033;
-  background: rgba(255, 255, 255, 0.88);
+@media (max-width: 1000px) {
+  .nav {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .nav-actions {
+    width: 100%;
+  }
+
+  .month-nav {
+    flex: 1;
+  }
+
+  .hero {
+    grid-template-columns: 1fr;
+  }
+
+  .flight-card-main {
+    grid-template-columns:
+      minmax(0, 1fr) minmax(230px, 1fr);
+  }
+
+  .price-box {
+    grid-column: 1 / -1;
+    text-align: left;
+  }
 }
 
-.featured-tag {
-  color: #ffffff;
-  background: rgba(53, 111, 255, 0.9);
-}
-
-.cover-reward {
-  position: absolute;
-  right: 16px;
-  bottom: 15px;
-  left: 16px;
-  color: #ffffff;
-}
-
-.cover-reward span,
-.cover-reward strong {
-  display: block;
-}
-
-.cover-reward span {
-  font-size: 11px;
-  font-weight: 700;
-  opacity: 0.82;
-}
-
-.cover-reward strong {
-  margin-top: 3px;
-  font-size: 29px;
-  line-height: 1;
-  letter-spacing: -0.055em;
-}
-
-.deal-card-body {
-  padding: 19px;
-}
-
-.deal-card-head {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-}
-
-.merchant-avatar {
-  width: 39px;
-  height: 39px;
-  border-radius: 13px;
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  color: #ffffff;
-  background: #172033;
-  font-size: 14px;
-  font-weight: 900;
-}
-
-.merchant-info {
-  min-width: 0;
-}
-
-.merchant-name {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.merchant-name strong {
-  overflow: hidden;
-  color: #172033;
-  font-size: 14px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.merchant-info > span {
-  display: block;
-  margin-top: 3px;
-  color: #8790a2;
-  font-size: 11px;
-}
-
-.verified {
-  flex-shrink: 0;
-  color: #356fff;
-}
-
-.deal-content h3 {
-  margin: 17px 0 8px;
-  color: #172033;
-  font-size: 18px;
-  line-height: 1.4;
-  letter-spacing: -0.035em;
-}
-
-.deal-content p {
-  margin: 0;
-  color: #697386;
-  font-size: 13px;
-  line-height: 1.7;
-}
-
-.deal-tags {
-  margin-top: 15px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-}
-
-.deal-tags span {
-  padding: 6px 9px;
-  border-radius: 999px;
-  color: #596579;
-  background: #f1f4f8;
-  font-size: 11px;
-  font-weight: 750;
-}
-
-.deal-bottom {
-  margin-top: 18px;
-  padding-top: 15px;
-  border-top: 1px solid #edf0f4;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.deal-location,
-.deal-deadline {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  color: #8790a2;
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.deal-location {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.deal-deadline {
-  flex-shrink: 0;
-}
-
-.deal-deadline.urgent {
-  color: #e5573f;
-}
-
-@media (max-width: 880px) {
+@media (max-width: 720px) {
   .page {
-    padding: 18px;
+    width: min(100% - 20px,
+        1180px);
   }
 
-  .nav {
-    margin-bottom: 48px;
+  .nav-actions {
+    align-items: stretch;
+    flex-wrap: wrap;
   }
 
-  .brand span {
-    display: none;
+  .month-nav {
+    width: 100%;
+    order: 3;
   }
 
-  .nav-actions a:not(.report-nav-btn) {
-    display: none;
+  .refresh-button {
+    flex: 1;
   }
 
-  .nav-actions .report-nav-btn {
-    margin-left: 0;
-    padding: 0 12px;
-    font-size: 13px;
-  }
-
-  .featured-card,
-  .deal-grid,
-  .source-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .featured-card {
-    gap: 18px;
-  }
-
-  .reward-panel {
-    min-height: 170px;
-  }
-
-  .source-flow {
-    grid-template-columns: 1fr;
-  }
-
-  .source-flow>svg {
-    display: none;
-  }
-}
-
-@media (max-width: 620px) {
-  .nav {
-    margin-bottom: 48px;
-  }
-
-  .brand span {
-    display: none;
-  }
-
-  .nav-actions a:not(.report-nav-btn) {
-    display: none;
-  }
-
-  .nav-actions .report-nav-btn {
-    margin-left: 0;
-    padding: 0 12px;
-    font-size: 13px;
+  .hero-main,
+  .best-panel {
+    padding: 25px;
+    /* text-align: left; */
   }
 
   .hero h1 {
-    font-size: 43px;
+    font-size:
+      clamp(37px, 12vw, 52px);
   }
 
-  .hero-actions {
-    flex-direction: column;
-  }
-
-  .hero-actions a,
-  .hero-actions button {
-    width: 100%;
-  }
-
-  .section-head,
-  .daily-note,
-  .footer {
-    display: block;
-  }
-
-  .updated-time {
-    margin-top: 9px;
-  }
-
-  .daily-note button {
-    margin-top: 13px;
-  }
-
-  .history-item {
-    grid-template-columns: auto 1fr;
-  }
-
-  .history-reward {
-    grid-column: 2;
-    text-align: left;
-  }
-
-  .report-grid {
+  .summary-grid {
     grid-template-columns: 1fr;
   }
 
-  .report-grid .full {
+  .section-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .flight-card {
+    padding: 21px 16px;
+  }
+
+  .flight-card-main {
+    grid-template-columns: 1fr;
+    padding-left: 17px;
+  }
+
+  .route {
+    max-width: 440px;
+  }
+
+  .price-box {
     grid-column: auto;
   }
 
-  .footer p {
-    margin-top: 13px;
-  }
-}
-
-/* =========================
-   PayPay Referral RWD
-========================= */
-
-@media (max-width: 900px) {
-  .paypay-referral {
-    grid-template-columns: 1fr;
-    gap: 22px;
-    padding: 24px;
-  }
-
-  .referral-code-box,
-  .referral-description,
-  .referral-notice {
-    max-width: none;
-  }
-
-  .referral-side {
-    display: grid;
-    grid-template-columns: 220px 1fr;
-    align-items: center;
-    gap: 20px;
-  }
-
-  .referral-steps {
-    margin-top: 0;
-  }
-}
-
-@media (max-width: 640px) {
-  .paypay-referral {
-    margin-top: 18px;
-    padding: 20px;
-    border-radius: 22px;
-    gap: 20px;
-  }
-
-  .referral-main h2 {
-    margin-top: 12px;
-    font-size: 27px;
-  }
-
-  .referral-description {
-    font-size: 14px;
-    line-height: 1.7;
-  }
-
-  .referral-code-box {
-    margin-top: 18px;
-    padding: 14px;
-    border-radius: 17px;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 13px;
-  }
-
-  .referral-code-content {
-    text-align: center;
-  }
-
-  .referral-code-content strong {
-    font-size: 22px;
-  }
-
-  .copy-code-btn {
-    width: 100%;
-    height: 45px;
-  }
-
-  .referral-side {
-    padding: 19px;
-    border-radius: 19px;
-    display: block;
-  }
-
-  .referral-point {
-    text-align: center;
-  }
-
-  .referral-point strong {
-    font-size: 28px;
-  }
-
-  .referral-steps {
-    margin-top: 20px;
-  }
-}
-
-@media (max-width: 420px) {
-  .paypay-referral {
-    padding: 17px;
-    border-radius: 19px;
-  }
-
-  .referral-badge {
-    padding: 6px 9px;
-    font-size: 10px;
-  }
-
-  .referral-main h2 {
-    font-size: 24px;
-  }
-
-  .referral-description {
-    font-size: 13px;
-  }
-
-  .referral-code-content strong {
-    font-size: 19px;
-    letter-spacing: 0.035em;
-  }
-
-  .referral-notice {
-    gap: 7px;
-  }
-
-  .referral-notice p {
-    font-size: 11px;
-  }
-
-  .referral-side {
-    padding: 16px;
-  }
-
-  .referral-point strong {
-    font-size: 25px;
-  }
-
-  .referral-steps>div {
-    padding: 10px;
-  }
-
-  .referral-steps p {
-    font-size: 12px;
-  }
-}
-
-@media (max-width: 900px) {
-  .guide-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .guide-card {
-    display: grid;
-    grid-template-columns: 180px 1fr;
-    grid-template-areas:
-      "image step"
-      "image title"
-      "image text";
-    column-gap: 20px;
-    align-items: start;
-  }
-
-  .guide-card>span {
-    grid-area: step;
-  }
-
-  .guide-card img {
-    grid-area: image;
-    margin-top: 0;
-    height: 100%;
-    min-height: 180px;
-  }
-
-  .guide-card h4 {
-    grid-area: title;
-    margin-top: 12px;
-  }
-
-  .guide-card p {
-    grid-area: text;
-  }
-}
-
-@media (max-width: 640px) {
-  .referral-guide {
-    padding: 20px;
-    border-radius: 22px;
-  }
-
-  .referral-guide h3 {
-    font-size: 24px;
-  }
-
-  .guide-grid {
-    margin-top: 20px;
-    gap: 14px;
-  }
-
-  .guide-card {
-    padding: 15px;
-    border-radius: 18px;
-    display: block;
-  }
-
-  .guide-card img {
-    margin-top: 14px;
-    min-height: 0;
-  }
-
-  .guide-card h4 {
-    margin-top: 15px;
-    font-size: 17px;
-  }
-
-  .guide-card p {
-    font-size: 13px;
-  }
-}
-
-@media (max-width: 640px) {
-  .paypay-download-actions {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .paypay-download-actions .copy-code-btn,
-  .download-paypay-btn {
-    width: 100%;
-    min-height: 46px;
-  }
-
-  .download-hint {
-    font-size: 11px;
-  }
-}
-@media (max-width: 640px) {
-  .deal-card {
-    border-radius: 20px;
-  }
-
-  .deal-card-body {
-    padding: 16px;
-  }
-
-  .cover-reward strong {
-    font-size: 25px;
-  }
-
-  .deal-content h3 {
-    font-size: 17px;
-  }
-
-  .deal-bottom {
+  .footer {
     align-items: flex-start;
     flex-direction: column;
-    gap: 8px;
-  }
-
-  .deal-location {
-    white-space: normal;
   }
 }
 </style>
