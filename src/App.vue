@@ -359,10 +359,10 @@ const normalizeFlightSummary = (
 // ======================================================
 
 const TRIP_AFFILIATE = {
-  Allianceid: '9296239',
-  SID: '324469629',
+ Allianceid: '9296239',
+  SID: '324535324',
   trip_sub1: '',
-  trip_sub3: 'D18700075',
+  trip_sub3: 'D18704191',
 }
 
 const getAffiliateUrl = (
