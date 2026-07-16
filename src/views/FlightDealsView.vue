@@ -372,24 +372,33 @@ const getAffiliateUrl = (
 // Supabase
 // ======================================================
 
+const HOME_CANDIDATE_REASON =
+    '2026-09-full'
+
 const fetchFlights = async () => {
     isLoading.value = true
     errorMessage.value = ''
 
     try {
         /*
-          第一步：
-          找到 flight_candidates 最新建立的一批資料。
-        */
+         * 第一步：
+         * 只從「完整九月 Top 10」中，
+         * 找到最新建立的一批候選資料。
+         */
         const {
             data: latestCandidate,
             error: latestCandidateError,
         } = await supabase
             .from('flight_candidates')
             .select(`
-        collection_run_id,
-        created_at
-      `)
+                collection_run_id,
+                reason,
+                created_at
+            `)
+            .eq(
+                'reason',
+                HOME_CANDIDATE_REASON,
+            )
             .not(
                 'collection_run_id',
                 'is',
@@ -406,37 +415,47 @@ const fetchFlights = async () => {
         }
 
         if (
-            !latestCandidate?.collection_run_id
+            !latestCandidate
+                ?.collection_run_id
         ) {
             flights.value = []
-            currentCandidateRunId.value = null
+            currentCandidateRunId.value =
+                null
             return
         }
 
         currentCandidateRunId.value =
-            latestCandidate.collection_run_id
+            latestCandidate
+                .collection_run_id
 
         /*
-          第二步：
-          取得最新批次的候選 Top 10。
-        */
+         * 第二步：
+         * 取得這個批次的完整九月 Top 10。
+         *
+         * 同時限制 collection_run_id 與 reason，
+         * 避免混入其他用途的候選資料。
+         */
         const {
             data: candidates,
             error: candidatesError,
         } = await supabase
             .from('flight_candidates')
             .select(`
-        id,
-        collection_run_id,
-        flight_price_id,
-        rank,
-        score,
-        reason,
-        created_at
-      `)
+                id,
+                collection_run_id,
+                flight_price_id,
+                rank,
+                score,
+                reason,
+                created_at
+            `)
             .eq(
                 'collection_run_id',
                 currentCandidateRunId.value,
+            )
+            .eq(
+                'reason',
+                HOME_CANDIDATE_REASON,
             )
             .order('rank', {
                 ascending: true,
@@ -452,12 +471,21 @@ const fetchFlights = async () => {
             return
         }
 
-        const flightPriceIds = candidates
-            .map(
-                (candidate) =>
-                    candidate.flight_price_id,
-            )
-            .filter(Boolean)
+        const flightPriceIds = [
+            ...new Set(
+                candidates
+                    .map(
+                        (candidate) =>
+                            candidate
+                                .flight_price_id,
+                    )
+                    .filter(
+                        (id) =>
+                            id !== null &&
+                            id !== undefined,
+                    ),
+            ),
+        ]
 
         if (!flightPriceIds.length) {
             flights.value = []
@@ -465,35 +493,35 @@ const fetchFlights = async () => {
         }
 
         /*
-          第三步：
-          回 flight_prices 取得完整航班內容。
-        */
+         * 第三步：
+         * 回 flight_prices 取得完整航班資料。
+         */
         const {
             data: flightPrices,
             error: flightPricesError,
         } = await supabase
             .from('flight_prices')
             .select(`
-        id,
-        collection_run_id,
-        platform,
-        origin,
-        destination_city,
-        destination,
-        departure_date,
-        return_date,
-        stay_days,
-        adults,
-        currency,
-        price,
-        airline,
-        direct,
-        baggage,
-        flight_summary,
-        search_url,
-        status,
-        captured_at
-      `)
+                id,
+                collection_run_id,
+                platform,
+                origin,
+                destination_city,
+                destination,
+                departure_date,
+                return_date,
+                stay_days,
+                adults,
+                currency,
+                price,
+                airline,
+                direct,
+                baggage,
+                flight_summary,
+                search_url,
+                status,
+                captured_at
+            `)
             .in(
                 'id',
                 flightPriceIds,
@@ -503,24 +531,27 @@ const fetchFlights = async () => {
             throw flightPricesError
         }
 
-        const flightPriceMap = new Map(
-            (flightPrices || []).map(
-                (flight) => [
-                    flight.id,
-                    flight,
-                ],
-            ),
-        )
+        const flightPriceMap =
+            new Map(
+                (flightPrices || []).map(
+                    (flight) => [
+                        flight.id,
+                        flight,
+                    ],
+                ),
+            )
 
         /*
-          第四步：
-          將候選 rank 與完整航班內容合併。
-        */
+         * 第四步：
+         * 將候選排名與完整航班內容合併。
+         */
         flights.value = candidates
             .map((candidate) => {
-                const flight = flightPriceMap.get(
-                    candidate.flight_price_id,
-                )
+                const flight =
+                    flightPriceMap.get(
+                        candidate
+                            .flight_price_id,
+                    )
 
                 if (!flight) {
                     return null
@@ -542,10 +573,16 @@ const fetchFlights = async () => {
                         candidate.reason,
 
                     candidate_created_at:
-                        candidate.created_at,
+                        candidate
+                            .created_at,
                 }
             })
             .filter(Boolean)
+
+        console.log(
+            '首頁候選 reason：',
+            HOME_CANDIDATE_REASON,
+        )
 
         console.log(
             '目前候選批次：',
@@ -560,33 +597,47 @@ const fetchFlights = async () => {
             flights.value.map(
                 (flight) => ({
                     rank:
-                        flight.candidate_rank,
+                        flight
+                            .candidate_rank,
 
                     departure:
-                        flight.departure_date,
+                        flight
+                            .departure_date,
 
                     return:
-                        flight.return_date,
+                        flight
+                            .return_date,
 
                     stay_days:
-                        getStayDays(flight),
+                        getStayDays(
+                            flight,
+                        ),
 
                     airline:
                         flight.airline,
 
                     price:
                         flight.price,
+
+                    reason:
+                        flight
+                            .candidate_reason,
                 }),
             ),
         )
     } catch (error) {
-        console.error(error)
+        console.error(
+            '精選航班讀取失敗：',
+            error,
+        )
 
         errorMessage.value =
             error?.message ||
             '精選航班讀取失敗'
 
         flights.value = []
+        currentCandidateRunId.value =
+            null
     } finally {
         isLoading.value = false
     }

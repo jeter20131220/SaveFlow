@@ -1,5 +1,10 @@
 <script setup>
 import {
+  computed,
+  onMounted,
+  ref,
+} from 'vue'
+import {
   ArrowRight,
   BarChart3,
   CalendarSearch,
@@ -12,11 +17,15 @@ import {
   Sparkles,
   TrendingDown,
   WalletCards,
+
 } from 'lucide-vue-next'
 
 import AppNavbar from '../components/AppNavbar.vue'
 
-
+const theme = ref(
+  localStorage.getItem('flight_theme') ||
+  'dark',
+)
 const comparisonSteps = [
   {
     icon: Search,
@@ -59,16 +68,34 @@ const upcomingFeatures = [
   '自訂出發區間與停留天數',
   'AI 購買時機與 CP 值分析',
 ]
+
+const applyTheme = () => {
+  document.documentElement.dataset.theme =
+    theme.value
+}
+
+const toggleTheme = () => {
+  theme.value =
+    theme.value === 'dark'
+      ? 'light'
+      : 'dark'
+
+  localStorage.setItem(
+    'flight_theme',
+    theme.value,
+  )
+
+  applyTheme()
+}
 </script>
 
 <template>
   <main class="story-page">
-       <AppNavbar
-  :theme="theme"
-  :show-month-nav="false"
-  @toggle-theme="toggleTheme"
-/>
-
+        <AppNavbar
+      :theme="theme"
+      :show-month-nav="false"
+      @toggle-theme="toggleTheme"
+    />
     <section class="story-hero">
       <div class="story-hero-content">
         <span class="story-eyebrow">
@@ -514,7 +541,7 @@ const upcomingFeatures = [
 .future-alert h2 {
   margin: 14px 0;
   font-size: clamp(30px, 4vw, 48px);
-  line-height: 1.16;
+  line-height: 1.2;
   letter-spacing: -0.035em;
 }
 
@@ -685,11 +712,11 @@ const upcomingFeatures = [
 @media (max-width: 640px) {
   .story-page {
     width: min(100% - 20px, 1180px);
-    padding-top: 20px;
+    /* padding-top: 20px; */
   }
 
   .story-hero h1 {
-    font-size: clamp(38px, 12vw, 55px);
+    font-size: clamp(32px, 8vw, 55px);
   }
 
   .problem-grid,
