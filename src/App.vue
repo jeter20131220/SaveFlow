@@ -25,7 +25,7 @@ import { createClient } from '@supabase/supabase-js'
 const SUPABASE_URL =
   'https://rrukbblbbizycawbvprr.supabase.co'
 
-// 只能放 anon / publishable key。
+// 前端只能放 anon / publishable key。
 // 不可以放 service_role key。
 const SUPABASE_ANON_KEY =
   'sb_publishable_r4au429bqxD2XwaiQAvwcw_ytAlHh4m'
@@ -46,24 +46,12 @@ const flights = ref([])
 const isLoading = ref(false)
 const errorMessage = ref('')
 
+const currentCandidateRunId = ref(null)
+
 const theme = ref(
   localStorage.getItem('flight_theme') ||
   'dark',
 )
-
-// 目前只開放 7 天與 16 天
-const stayDayOptions = [
-  {
-    value: 7,
-    label: '7 天',
-  },
-  {
-    value: 16,
-    label: '16 天',
-  },
-]
-
-const selectedStayDays = ref(16)
 
 const monthOptions = [
   {
@@ -107,13 +95,13 @@ const currentMonthOption = computed(() => {
   )
 })
 
-// 目前先顯示所有符合條件的航班。
-// 不依照日期組合去重。
+// 候選資料已經由 Python 排好 rank，
+// 前端按照 candidate_rank 顯示。
 const sortedFlights = computed(() => {
   return [...flights.value].sort(
     (a, b) =>
-      Number(a.price) -
-      Number(b.price),
+      Number(a.candidate_rank) -
+      Number(b.candidate_rank),
   )
 })
 
@@ -188,40 +176,6 @@ const toggleTheme = () => {
 // 日期與格式
 // ======================================================
 
-const getMonthRange = (
-  monthValue,
-) => {
-  const [year, month] = monthValue
-    .split('-')
-    .map(Number)
-
-  const start = new Date(
-    Date.UTC(
-      year,
-      month - 1,
-      1,
-    ),
-  )
-
-  const end = new Date(
-    Date.UTC(
-      year,
-      month,
-      1,
-    ),
-  )
-
-  return {
-    start: start
-      .toISOString()
-      .slice(0, 10),
-
-    end: end
-      .toISOString()
-      .slice(0, 10),
-  }
-}
-
 const formatPrice = (value) => {
   if (
     value === null ||
@@ -262,6 +216,7 @@ const formatDateTime = (value) => {
   return new Intl.DateTimeFormat(
     'zh-TW',
     {
+      timeZone: 'Asia/Taipei',
       month: 'numeric',
       day: 'numeric',
       hour: '2-digit',
@@ -297,6 +252,16 @@ const calculateStayDays = (
   )
 }
 
+const getStayDays = (flight) => {
+  return (
+    flight?.stay_days ??
+    calculateStayDays(
+      flight?.departure_date,
+      flight?.return_date,
+    )
+  )
+}
+
 const getAirportName = (
   airport,
 ) => {
@@ -310,7 +275,8 @@ const getAirportName = (
 
   return (
     airportNames[airport] ||
-    airport
+    airport ||
+    '機場待確認'
   )
 }
 
@@ -337,7 +303,7 @@ const getPriceLevel = (
 
   return {
     className: '',
-    text: '目前候選',
+    text: '精選候選',
     icon: '',
   }
 }
@@ -359,7 +325,7 @@ const normalizeFlightSummary = (
 // ======================================================
 
 const TRIP_AFFILIATE = {
- Allianceid: '9296239',
+  Allianceid: '9296239',
   SID: '324535324',
   trip_sub1: '',
   trip_sub3: 'D18704191',
@@ -372,25 +338,33 @@ const getAffiliateUrl = (
     return '#'
   }
 
-  const url = new URL(
-    flight.search_url,
-  )
-
-  Object.entries(
-    TRIP_AFFILIATE,
-  ).forEach(([key, value]) => {
-    // 空值不加入網址
-    if (!value) {
-      return
-    }
-
-    url.searchParams.set(
-      key,
-      value,
+  try {
+    const url = new URL(
+      flight.search_url,
     )
-  })
 
-  return url.toString()
+    Object.entries(
+      TRIP_AFFILIATE,
+    ).forEach(([key, value]) => {
+      if (!value) {
+        return
+      }
+
+      url.searchParams.set(
+        key,
+        value,
+      )
+    })
+
+    return url.toString()
+  } catch (error) {
+    console.error(
+      'Affiliate URL 解析失敗：',
+      error,
+    )
+
+    return flight.search_url
+  }
 }
 
 // ======================================================
@@ -402,16 +376,100 @@ const fetchFlights = async () => {
   errorMessage.value = ''
 
   try {
+    /*
+      第一步：
+      找到 flight_candidates 最新建立的一批資料。
+    */
     const {
-      start,
-      end,
-    } = getMonthRange(
-      selectedMonth.value,
-    )
+      data: latestCandidate,
+      error: latestCandidateError,
+    } = await supabase
+      .from('flight_candidates')
+      .select(`
+        collection_run_id,
+        created_at
+      `)
+      .not(
+        'collection_run_id',
+        'is',
+        null,
+      )
+      .order('created_at', {
+        ascending: false,
+      })
+      .limit(1)
+      .maybeSingle()
 
+    if (latestCandidateError) {
+      throw latestCandidateError
+    }
+
+    if (
+      !latestCandidate?.collection_run_id
+    ) {
+      flights.value = []
+      currentCandidateRunId.value = null
+      return
+    }
+
+    currentCandidateRunId.value =
+      latestCandidate.collection_run_id
+
+    /*
+      第二步：
+      取得最新批次的候選 Top 10。
+    */
     const {
-      data,
-      error,
+      data: candidates,
+      error: candidatesError,
+    } = await supabase
+      .from('flight_candidates')
+      .select(`
+        id,
+        collection_run_id,
+        flight_price_id,
+        rank,
+        score,
+        reason,
+        created_at
+      `)
+      .eq(
+        'collection_run_id',
+        currentCandidateRunId.value,
+      )
+      .order('rank', {
+        ascending: true,
+      })
+      .limit(10)
+
+    if (candidatesError) {
+      throw candidatesError
+    }
+
+    if (!candidates?.length) {
+      flights.value = []
+      return
+    }
+
+    const flightPriceIds = candidates
+      .map(
+        (candidate) =>
+          candidate.flight_price_id,
+      )
+      .filter(Boolean)
+
+    if (!flightPriceIds.length) {
+      flights.value = []
+      return
+    }
+
+    /*
+      第三步：
+      回 flight_prices 取得完整航班內容。
+    */
+    const {
+      data: flightPrices,
+      error: flightPricesError,
     } = await supabase
       .from('flight_prices')
       .select(`
@@ -435,50 +493,86 @@ const fetchFlights = async () => {
         status,
         captured_at
       `)
-      .eq('status', 'success')
-      .not('price', 'is', null)
-      .eq(
-        'stay_days',
-        selectedStayDays.value,
+      .in(
+        'id',
+        flightPriceIds,
       )
-      .gte(
-        'departure_date',
-        start,
-      )
-      .lt(
-        'departure_date',
-        end,
-      )
-      .order('price', {
-        ascending: true,
-      })
 
-    if (error) {
-      throw error
+    if (flightPricesError) {
+      throw flightPricesError
     }
 
-    flights.value = data || []
+    const flightPriceMap = new Map(
+      (flightPrices || []).map(
+        (flight) => [
+          flight.id,
+          flight,
+        ],
+      ),
+    )
+
+    /*
+      第四步：
+      將候選 rank 與完整航班內容合併。
+    */
+    flights.value = candidates
+      .map((candidate) => {
+        const flight = flightPriceMap.get(
+          candidate.flight_price_id,
+        )
+
+        if (!flight) {
+          return null
+        }
+
+        return {
+          ...flight,
+
+          candidate_id:
+            candidate.id,
+
+          candidate_rank:
+            candidate.rank,
+
+          candidate_score:
+            candidate.score,
+
+          candidate_reason:
+            candidate.reason,
+
+          candidate_created_at:
+            candidate.created_at,
+        }
+      })
+      .filter(Boolean)
 
     console.log(
-      `目前選擇：${selectedStayDays.value} 天`,
+      '目前候選批次：',
+      currentCandidateRunId.value,
     )
 
     console.log(
-      `Supabase 回傳：${flights.value.length} 筆`,
+      `精選航班：${flights.value.length} 筆`,
     )
 
     console.table(
       flights.value.map(
         (flight) => ({
-          id: flight.id,
-          stay_days:
-            flight.stay_days,
+          rank:
+            flight.candidate_rank,
+
           departure:
             flight.departure_date,
+
           return:
             flight.return_date,
+
+          stay_days:
+            getStayDays(flight),
+
           airline:
             flight.airline,
+
           price:
             flight.price,
         }),
@@ -489,7 +583,7 @@ const fetchFlights = async () => {
 
     errorMessage.value =
       error?.message ||
-      '航班資料讀取失敗'
+      '精選航班讀取失敗'
 
     flights.value = []
   } finally {
@@ -530,22 +624,6 @@ const changeMonth = async (
   await fetchFlights()
 }
 
-const changeStayDays = async (
-  stayDays,
-) => {
-  if (
-    selectedStayDays.value ===
-    stayDays
-  ) {
-    return
-  }
-
-  selectedStayDays.value =
-    stayDays
-
-  await fetchFlights()
-}
-
 // ======================================================
 // Lifecycle
 // ======================================================
@@ -554,49 +632,82 @@ onMounted(() => {
   applyTheme()
   fetchFlights()
 })
-
 </script>
 
 <template>
   <main class="page">
     <nav class="nav">
-      <a class="brand" href="#top">
+      <a
+        class="brand"
+        href="#top"
+      >
         <span class="brand-icon">
           <Plane :size="21" />
         </span>
 
         <div>
           <strong>SaveFlow</strong>
-          <p>東京便宜機票月曆</p>
+
+          <p>
+            東京便宜機票精選
+          </p>
         </div>
       </a>
 
       <div class="nav-actions">
         <div class="month-nav">
-          <button v-for="month in monthOptions" :key="month.value" type="button" :class="{
-            active:
-              selectedMonth ===
-              month.value,
-          }" @click="
-            changeMonth(month.value)
-            ">
+          <button
+            v-for="month in monthOptions"
+            :key="month.value"
+            type="button"
+            :class="{
+              active:
+                selectedMonth ===
+                month.value,
+            }"
+            @click="
+              changeMonth(
+                month.value,
+              )
+            "
+          >
             {{ month.label }}
           </button>
         </div>
 
-        <button type="button" class="icon-button" :title="theme === 'dark'
-          ? '切換淺色模式'
-          : '切換深色模式'
-          " @click="toggleTheme">
-          <Sun v-if="theme === 'dark'" :size="18" />
+        <button
+          type="button"
+          class="icon-button"
+          :title="
+            theme === 'dark'
+              ? '切換淺色模式'
+              : '切換深色模式'
+          "
+          @click="toggleTheme"
+        >
+          <Sun
+            v-if="theme === 'dark'"
+            :size="18"
+          />
 
-          <Moon v-else :size="18" />
+          <Moon
+            v-else
+            :size="18"
+          />
         </button>
 
-        <button type="button" class="refresh-button" :disabled="isLoading" @click="fetchFlights">
-          <RefreshCw :size="16" :class="{
-            spinning: isLoading,
-          }" />
+        <button
+          type="button"
+          class="refresh-button"
+          :disabled="isLoading"
+          @click="fetchFlights"
+        >
+          <RefreshCw
+            :size="16"
+            :class="{
+              spinning: isLoading,
+            }"
+          />
 
           {{
             isLoading
@@ -607,7 +718,14 @@ onMounted(() => {
       </div>
     </nav>
 
-    <section id="top" class="hero">
+    <!-- ==================================================
+         Hero
+    =================================================== -->
+
+    <section
+      id="top"
+      class="hero"
+    >
       <div class="panel hero-main">
         <div class="eyebrow">
           <CalendarDays :size="14" />
@@ -615,35 +733,40 @@ onMounted(() => {
           {{
             currentMonthOption.fullLabel
           }}
-
-          FLIGHT WATCH
+          上半月精選
         </div>
 
         <h1>
-          不用一直換日期，<br />
-          直接看哪一段最便宜。
+          掃描多組旅行日期，<br />
+          只留下最值得看的選擇。
         </h1>
 
         <p class="hero-description">
-          SaveFlow 自動比較不同出發日期與停留天數，
-          整理桃園飛東京目前值得注意的來回機票。
-          點擊航班即可前往 Trip.com 查看最新價格。
+          SaveFlow 已比較 9 月 1 日至 15
+          日出發，停留 7、10、14、15、16
+          天的多組東京來回航班，從大量搜尋結果中，
+          整理出目前最便宜、最值得注意的 10
+          組日期。
         </p>
 
         <div class="hero-tags">
-          <span>桃園 TPE 出發</span>
-          <span>成田 NRT／羽田 HND</span>
-          <span>約 14～18 天</span>
-          <span>直飛優先</span>
+          <span>9/1～9/15 出發</span>
+          <span>停留 7～16 天</span>
+          <span>桃園飛東京</span>
+          <span>精選 Top 10</span>
         </div>
       </div>
+
+      <!-- ================================================
+           上半月首選
+      ================================================= -->
 
       <aside class="panel best-panel">
         <template v-if="bestFlight">
           <div>
             <span class="best-label">
               <Sparkles :size="15" />
-              目前最划算
+              上半月首選
             </span>
 
             <strong class="best-price">
@@ -681,19 +804,14 @@ onMounted(() => {
 
                 停留
                 {{
-                  bestFlight.stay_days ??
-                  calculateStayDays(
-                    bestFlight.departure_date,
-                    bestFlight.return_date,
-                )
+                  getStayDays(
+                    bestFlight,
+                  )
                 }}
                 天
               </span>
 
-              <span v-if="
-                bestFlight.direct !== null &&
-                bestFlight.direct !== undefined
-              " class="best-direct">
+              <span class="best-direct">
                 {{
                   bestFlight.direct
                     ? '直飛'
@@ -715,46 +833,62 @@ onMounted(() => {
             </p>
           </div>
 
-          <a class="best-button" :href="getAffiliateUrl(
-            bestFlight,
-          )
-            " target="_blank" rel="noopener noreferrer sponsored">
-            查看目前價格
+          <a
+            class="best-button"
+            :href="
+              getAffiliateUrl(
+                bestFlight,
+              )
+            "
+            target="_blank"
+            rel="noopener noreferrer sponsored"
+          >
+            查看 Trip.com 即時價格
+
             <ExternalLink :size="16" />
           </a>
         </template>
 
-        <div v-else-if="isLoading" class="best-empty">
-          正在尋找最低價格……
+        <div
+          v-else-if="isLoading"
+          class="best-empty"
+        >
+          正在整理精選航班……
         </div>
 
-        <div v-else class="best-empty">
-          這個月份目前還沒有資料。
+        <div
+          v-else
+          class="best-empty"
+        >
+          目前還沒有精選航班資料。
         </div>
       </aside>
     </section>
+
+    <!-- ==================================================
+         Content
+    =================================================== -->
 
     <section class="content-section">
       <div class="section-head">
         <div>
           <span class="section-eyebrow">
-            MONTHLY DEALS
+            CURATED FLIGHT DEALS
           </span>
 
           <h2>
-            {{
-              currentMonthOption.fullLabel
-            }}
-            便宜機票
+            9 月上半月精選 Top 10
           </h2>
 
           <p>
-            依目前抓到的來回價格由低到高排列。
+            比較 9/1～9/15
+            出發的多組日期與停留時間後，
+            只呈現目前最值得注意的航班方案。
           </p>
         </div>
 
         <span class="last-updated">
-          最後更新：
+          資料更新：
           {{
             formatDateTime(
               latestCapturedAt,
@@ -762,32 +896,39 @@ onMounted(() => {
           }}
         </span>
       </div>
-      <div class="stay-filter-section">
-        <div class="stay-filter-label">
-          <CalendarDays :size="16" />
-          <span>停留時間</span>
-        </div>
 
-        <div class="stay-filter">
-          <button v-for="option in stayDayOptions" :key="option.value" type="button" class="stay-filter-button" :class="{
-            active:
-              selectedStayDays === option.value,
-          }" @click="
-            changeStayDays(
-              option.value,
-            )
-            ">
-            {{ option.label }}
-          </button>
+      <!-- ================================================
+           資料涵蓋範圍
+      ================================================= -->
+
+      <div class="coverage-note">
+        <CalendarDays :size="18" />
+
+        <div>
+          <strong>
+            本次資料涵蓋 9 月上半月
+          </strong>
+
+          <p>
+            出發日期為 9/1～9/15，
+            停留時間包含 7、10、14、15、16 天。
+            下半月資料完成後，將更新為完整九月排行榜。
+          </p>
         </div>
       </div>
+
+      <!-- ================================================
+           Summary
+      ================================================= -->
+
       <div class="summary-grid">
         <article class="summary-card">
-          <span>候選航班</span>
+          <span>精選方案</span>
 
           <strong>
             {{ sortedFlights.length }}
-            <small>筆</small>
+
+            <small>組</small>
           </strong>
         </article>
 
@@ -808,33 +949,52 @@ onMounted(() => {
 
           <strong class="range-value">
             {{
-              lowestPrice !== null
+              lowestPrice !== null &&
+              highestPrice !== null
                 ? `${formatPrice(
-                  lowestPrice,
-                )}～${formatPrice(
-                  highestPrice,
-                )}`
+                    lowestPrice,
+                  )}～${formatPrice(
+                    highestPrice,
+                  )}`
                 : '—'
             }}
           </strong>
         </article>
       </div>
 
-      <div v-if="isLoading" class="panel state-card">
-        <RefreshCw :size="28" class="spinning" />
+      <!-- ================================================
+           Loading
+      ================================================= -->
+
+      <div
+        v-if="isLoading"
+        class="panel state-card"
+      >
+        <RefreshCw
+          :size="28"
+          class="spinning"
+        />
 
         <strong>
-          正在讀取航班資料
+          正在讀取精選航班
         </strong>
 
         <p>
-          正在從 SaveFlow 資料庫取得最新結果。
+          正在從 SaveFlow
+          資料庫取得最新候選結果。
         </p>
       </div>
 
-      <div v-else-if="errorMessage" class="panel state-card error-state">
+      <!-- ================================================
+           Error
+      ================================================= -->
+
+      <div
+        v-else-if="errorMessage"
+        class="panel state-card error-state"
+      >
         <strong>
-          航班資料讀取失敗
+          精選航班讀取失敗
         </strong>
 
         <p>
@@ -842,43 +1002,63 @@ onMounted(() => {
         </p>
       </div>
 
-      <div v-else-if="
-        !sortedFlights.length
-      " class="panel state-card">
+      <!-- ================================================
+           Empty
+      ================================================= -->
+
+      <div
+        v-else-if="!sortedFlights.length"
+        class="panel state-card"
+      >
         <Plane :size="29" />
 
         <strong>
-          這個月份還沒有資料
+          目前還沒有精選結果
         </strong>
 
         <p>
-          Collector 更新後，
-          這裡就會顯示最新航班結果。
+          Collector
+          與候選排行榜更新後，
+          這裡就會顯示最新方案。
         </p>
       </div>
 
-      <div v-else class="flight-grid">
-        <article v-for="(
-flight,
-  index
-          ) in sortedFlights" :key="flight.id" class="flight-card" :class="{
-            best: index === 0,
-          }">
+      <!-- ================================================
+           Flight Cards
+      ================================================= -->
+
+      <div
+        v-else
+        class="flight-grid"
+      >
+        <article
+          v-for="flight in sortedFlights"
+          :key="flight.candidate_id"
+          class="flight-card"
+          :class="{
+            best:
+              flight.candidate_rank === 1,
+          }"
+        >
           <span class="rank">
             {{
-              index === 0
+              flight.candidate_rank === 1
                 ? 'BEST'
-                : `#${index + 1}`
+                : `#${flight.candidate_rank}`
             }}
           </span>
 
           <div class="flight-card-main">
             <div class="airline-info">
               <div class="flight-badges">
-                <span class="badge" :class="getPriceLevel(
-                  flight.price,
-                ).className
-                  ">
+                <span
+                  class="badge"
+                  :class="
+                    getPriceLevel(
+                      flight.price,
+                    ).className
+                  "
+                >
                   {{
                     getPriceLevel(
                       flight.price,
@@ -892,17 +1072,19 @@ flight,
                   }}
                 </span>
 
-                {{
-                  flight.direct
-                    ? '直飛'
-                    : '轉機'
-                }}
-
                 <span class="badge">
                   {{
-                    calculateStayDays(
-                      flight.departure_date,
-                      flight.return_date,
+                    flight.direct
+                      ? '直飛'
+                      : '轉機'
+                  }}
+                </span>
+
+                <span class="badge">
+                  停留
+                  {{
+                    getStayDays(
+                      flight,
                     )
                   }}
                   天
@@ -984,15 +1166,22 @@ flight,
                 }}
               </strong>
 
-              <a :href="getAffiliateUrl(
-                flight,
-              )
-                " target="_blank" rel="noopener noreferrer sponsored">
+              <a
+                :href="
+                  getAffiliateUrl(
+                    flight,
+                  )
+                "
+                target="_blank"
+                rel="noopener noreferrer sponsored"
+              >
                 Trip.com 查看
+
                 <ExternalLink :size="14" />
               </a>
             </div>
           </div>
+
           <div class="flight-summary-wrapper">
             <div class="flight-summary-title">
               航班資訊
@@ -1010,23 +1199,32 @@ flight,
       </div>
     </section>
 
+    <!-- ==================================================
+         Affiliate Note
+    =================================================== -->
+
     <section class="affiliate-note">
       <CheckCircle2 :size="18" />
 
       <p>
         本頁部分連結為聯盟連結。透過連結完成預訂時，
         SaveFlow 可能獲得佣金，但不會增加你的付款金額。
-        航班價格、行李與付款條件請以 Trip.com
-        最終頁面為準。
+        航班價格、行李、航班時間與付款條件，
+        請以 Trip.com 最終頁面顯示為準。
       </p>
     </section>
+
+    <!-- ==================================================
+         Footer
+    =================================================== -->
 
     <footer class="footer">
       <div>
         <strong>SaveFlow</strong>
+
         <span>
-          不用一直換日期，
-          直接找到目前最划算的旅行方式。
+          讓機器完成大量搜尋，
+          你只需要查看真正值得注意的選擇。
         </span>
       </div>
 
